@@ -9,8 +9,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { Download, TrendingUp, TrendingDown, DollarSign, Users, Calendar, AlertTriangle } from "lucide-react"
 import { feeRecordService, studentService, batchService, type FeeRecord } from "@/lib/dataService"
+import { useToast } from "@/components/ui/use-toast"
 
 export default function Reports() {
+  const { toast } = useToast()
   const [selectedYear, setSelectedYear] = useState("2025")
   const [feeRecords, setFeeRecords] = useState<FeeRecord[]>([])
   const [students, setStudents] = useState<any[]>([])
@@ -179,7 +181,10 @@ export default function Reports() {
           </Select>
           <Button variant="outline" onClick={() => {
             // Export functionality can be added here
-            alert('Export functionality coming soon!')
+            toast({
+              title: "Coming Soon",
+              description: "Export functionality coming soon!",
+            })
           }}>
             <Download className="mr-2 h-4 w-4" />
             Export

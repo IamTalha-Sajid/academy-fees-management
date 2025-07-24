@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CalendarDays, DollarSign, Filter, Download, Plus, AlertTriangle, RefreshCw, FileText } from "lucide-react"
 import { feeRecordService, batchService, studentService, type FeeRecord } from "@/lib/dataService"
+import { useToast } from "@/components/ui/use-toast"
 
   const months = [
     "January",
@@ -27,6 +28,7 @@ import { feeRecordService, batchService, studentService, type FeeRecord } from "
 const years = ["2024", "2025", "2023"]
 
 export default function FeeCollection() {
+  const { toast } = useToast()
   const [selectedBatch, setSelectedBatch] = useState("All Batches")
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const currentDate = new Date()
@@ -98,7 +100,10 @@ export default function FeeCollection() {
       if (invalidRecords.length > 0) {
         await loadFeeRecords() // Reload after cleanup
         console.log(`Cleaned up ${invalidRecords.length} invalid fee records`)
-        alert(`🧹 Cleaned up ${invalidRecords.length} invalid fee records (past/future months)`)
+        toast({
+          title: "Cleanup Complete",
+          description: `🧹 Cleaned up ${invalidRecords.length} invalid fee records (past/future months)`,
+        })
       }
     } catch (error) {
       console.error('Error cleaning up invalid fees:', error)
@@ -142,10 +147,17 @@ export default function FeeCollection() {
       link.click()
       document.body.removeChild(link)
       
-      alert('✅ CSV report downloaded successfully!')
+      toast({
+        title: "Success",
+        description: "✅ CSV report downloaded successfully!",
+      })
     } catch (error) {
       console.error('Error generating CSV report:', error)
-      alert('❌ Error generating CSV report')
+      toast({
+        title: "Error",
+        description: "❌ Error generating CSV report",
+        variant: "destructive",
+      })
     }
   }
 
@@ -235,16 +247,27 @@ ${index + 1}. ${record.studentName} (${record.batch})
       link.click()
       document.body.removeChild(link)
       
-      alert('✅ Detailed report downloaded successfully!')
+      toast({
+        title: "Success",
+        description: "✅ Detailed report downloaded successfully!",
+      })
     } catch (error) {
       console.error('Error generating detailed report:', error)
-      alert('❌ Error generating detailed report')
+      toast({
+        title: "Error",
+        description: "❌ Error generating detailed report",
+        variant: "destructive",
+      })
     }
   }
 
   const handleExportReport = () => {
     if (filteredRecords.length === 0) {
-      alert('⚠️ No data available to export. Please select filters to view fee records.')
+      toast({
+        title: "No Data",
+        description: "⚠️ No data available to export. Please select filters to view fee records.",
+        variant: "destructive",
+      })
       return
     }
     
@@ -264,7 +287,11 @@ ${index + 1}. ${record.studentName} (${record.batch})
 
   const copySummaryToClipboard = () => {
     if (filteredRecords.length === 0) {
-      alert('⚠️ No data available to copy. Please select filters to view fee records.')
+      toast({
+        title: "No Data",
+        description: "⚠️ No data available to copy. Please select filters to view fee records.",
+        variant: "destructive",
+      })
       return
     }
 
@@ -291,9 +318,16 @@ Generated on: ${new Date().toLocaleDateString()}
     `.trim()
 
     navigator.clipboard.writeText(summary).then(() => {
-      alert('✅ Summary copied to clipboard!')
+      toast({
+        title: "Success",
+        description: "✅ Summary copied to clipboard!",
+      })
     }).catch(() => {
-      alert('❌ Failed to copy to clipboard')
+      toast({
+        title: "Error",
+        description: "❌ Failed to copy to clipboard",
+        variant: "destructive",
+      })
     })
   }
 
@@ -355,7 +389,11 @@ Generated on: ${new Date().toLocaleDateString()}
       
       // Only allow fee generation for the current month
       if (month !== currentMonth || year !== currentYear) {
-        alert(`❌ Fees can only be generated for the current month (${currentMonth} ${currentYear}).\n\nPlease select ${currentMonth} ${currentYear} to generate fees.`)
+        toast({
+          title: "Invalid Month",
+          description: `❌ Fees can only be generated for the current month (${currentMonth} ${currentYear}).\n\nPlease select ${currentMonth} ${currentYear} to generate fees.`,
+          variant: "destructive",
+        })
         return
       }
       
@@ -400,10 +438,17 @@ Generated on: ${new Date().toLocaleDateString()}
       }
       
       await loadFeeRecords() // Reload the list
-      alert(`✅ Fees generated successfully for ${month} ${year}!`)
+      toast({
+        title: "Success",
+        description: `✅ Fees generated successfully for ${month} ${year}!`,
+      })
     } catch (error) {
       console.error('Error generating fees for month:', error)
-      alert(`❌ Error generating fees: ${error}`)
+      toast({
+        title: "Error",
+        description: `❌ Error generating fees: ${error}`,
+        variant: "destructive",
+      })
     }
   }
 
@@ -416,7 +461,11 @@ Generated on: ${new Date().toLocaleDateString()}
       
       // Only allow fee regeneration for the current month
       if (month !== currentMonth || year !== currentYear) {
-        alert(`❌ Fees can only be regenerated for the current month (${currentMonth} ${currentYear}).\n\nPlease select ${currentMonth} ${currentYear} to regenerate fees.`)
+        toast({
+          title: "Invalid Month",
+          description: `❌ Fees can only be regenerated for the current month (${currentMonth} ${currentYear}).\n\nPlease select ${currentMonth} ${currentYear} to regenerate fees.`,
+          variant: "destructive",
+        })
         return
       }
       
@@ -431,10 +480,17 @@ Generated on: ${new Date().toLocaleDateString()}
       
       // Generate new fee records
       await generateFeesForMonth(month, year)
-      alert(`✅ Fees regenerated successfully for ${month} ${year}!`)
+      toast({
+        title: "Success",
+        description: `✅ Fees regenerated successfully for ${month} ${year}!`,
+      })
     } catch (error) {
       console.error('Error regenerating fees for month:', error)
-      alert(`❌ Error regenerating fees: ${error}`)
+      toast({
+        title: "Error",
+        description: `❌ Error regenerating fees: ${error}`,
+        variant: "destructive",
+      })
     }
   }
 

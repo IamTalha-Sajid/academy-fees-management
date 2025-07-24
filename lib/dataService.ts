@@ -72,7 +72,8 @@ async function fetchData(): Promise<AppData> {
   try {
     const response = await fetch('/api/data')
     if (!response.ok) {
-      throw new Error('Failed to fetch data')
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`)
     }
     return await response.json()
   } catch (error) {
@@ -99,7 +100,8 @@ async function updateData(action: string, data?: any, id?: number): Promise<bool
     })
     
     if (!response.ok) {
-      throw new Error('Failed to update data')
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`)
     }
     
     return true

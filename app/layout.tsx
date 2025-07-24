@@ -14,6 +14,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
+import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -52,6 +53,7 @@ export default function RootLayout({
             <div className="flex flex-1 flex-col gap-4 p-4">{children}</div>
           </SidebarInset>
         </SidebarProvider>
+        <Toaster />
       </body>
     </html>
   )
