@@ -33,6 +33,13 @@ export default function TeacherManagement() {
     loadSalaryRecords()
   }, [])
 
+  // Reload data when salary records change to update summary
+  useEffect(() => {
+    if (salaryRecords.length > 0) {
+      // This will trigger a re-render of the summary table
+    }
+  }, [salaryRecords])
+
   const loadTeachers = async () => {
     try {
       setLoading(true)
@@ -176,14 +183,14 @@ export default function TeacherManagement() {
   const handleSalarySubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      const teacher = teachers.find((t) => t.id === Number.parseInt(salaryFormData.teacherId))
+      const teacher = teachers.find((t) => t.id === salaryFormData.teacherId)
       if (!teacher) {
         console.error('Teacher not found')
         return
       }
       
       await salaryRecordService.create({
-        teacherId: Number.parseInt(salaryFormData.teacherId),
+        teacherId: salaryFormData.teacherId,
         teacherName: teacher.name,
         amount: Number.parseInt(salaryFormData.amount),
         month: salaryFormData.month,
@@ -194,7 +201,8 @@ export default function TeacherManagement() {
         type: salaryFormData.type,
       })
       
-      await loadSalaryRecords() // Reload the list
+      // Reload both salary records and teachers to update the summary
+      await Promise.all([loadSalaryRecords(), loadTeachers()])
       setIsSalaryDialogOpen(false)
       setSalaryFormData({
         teacherId: "",
@@ -225,7 +233,7 @@ export default function TeacherManagement() {
     setIsTeacherDialogOpen(true)
   }
 
-  const handleDeleteTeacher = async (id: number) => {
+  const handleDeleteTeacher = async (id: string) => {
     try {
       const success = await teacherService.delete(id)
       if (success) {
@@ -236,7 +244,7 @@ export default function TeacherManagement() {
     }
   }
 
-  const handleDeleteSalaryRecord = async (id: number) => {
+  const handleDeleteSalaryRecord = async (id: string) => {
     try {
       const success = await salaryRecordService.delete(id)
       if (success) {
@@ -247,7 +255,7 @@ export default function TeacherManagement() {
     }
   }
 
-  const getTeacherSalarySummary = (teacherId: number, month: string, year: string) => {
+  const getTeacherSalarySummary = (teacherId: string, month: string, year: string) => {
     const records = salaryRecords.filter(
       (record) => record.teacherId === teacherId && record.month === month && record.year === year,
     )
@@ -559,188 +567,196 @@ export default function TeacherManagement() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="salary" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-lg font-semibold">Salary Payments</h3>
-              <p className="text-sm text-muted-foreground">Track and manage teacher salary payments</p>
-            </div>
-            <Dialog open={isSalaryDialogOpen} onOpenChange={setIsSalaryDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Salary Payment
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader>
-                  <DialogTitle>Add Salary Payment</DialogTitle>
-                  <DialogDescription>Record a salary payment for a teacher</DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleSalarySubmit}>
-                  <div className="grid gap-4 py-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="teacherId">Teacher</Label>
-                      <Select
-                        value={salaryFormData.teacherId}
-                        onValueChange={(value) => setSalaryFormData({ ...salaryFormData, teacherId: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select teacher" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {teachers.map((teacher) => (
-                            <SelectItem key={teacher.id} value={teacher.id.toString()}>
-                              {teacher.name} - {teacher.subject}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="amount">Amount (Rs.)</Label>
-                        <Input
-                          id="amount"
-                          type="number"
-                          value={salaryFormData.amount}
-                          onChange={(e) => setSalaryFormData({ ...salaryFormData, amount: e.target.value })}
-                          placeholder="25000"
-                          required
-                        />
+         <TabsContent value="salary" className="space-y-4">
+           <div className="flex justify-between items-center">
+             <div>
+               <h3 className="text-lg font-semibold">Salary Payments</h3>
+               <p className="text-sm text-muted-foreground">Track and manage teacher salary payments</p>
+             </div>
+             <div className="flex gap-2">
+               <Button variant="outline" onClick={() => Promise.all([loadSalaryRecords(), loadTeachers()])}>
+                 <History className="mr-2 h-4 w-4" />
+                 Refresh
+               </Button>
+               <Dialog open={isSalaryDialogOpen} onOpenChange={setIsSalaryDialogOpen}>
+                 <DialogTrigger asChild>
+                   <Button>
+                     <Plus className="mr-2 h-4 w-4" />
+                     Add Salary Payment
+                   </Button>
+                 </DialogTrigger>
+                 <DialogContent className="sm:max-w-[500px]">
+                   <DialogHeader>
+                     <DialogTitle>Add Salary Payment</DialogTitle>
+                     <DialogDescription>Record a salary payment for a teacher</DialogDescription>
+                   </DialogHeader>
+                                       <form onSubmit={handleSalarySubmit}>
+                      <div className="grid gap-4 py-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="teacherId">Teacher</Label>
+                          <Select
+                            value={salaryFormData.teacherId}
+                            onValueChange={(value) => setSalaryFormData({ ...salaryFormData, teacherId: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select teacher" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {teachers.map((teacher) => (
+                                <SelectItem key={teacher.id} value={teacher.id.toString()}>
+                                  {teacher.name} - {teacher.subject}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="amount">Amount (Rs.)</Label>
+                            <Input
+                              id="amount"
+                              type="number"
+                              value={salaryFormData.amount}
+                              onChange={(e) => setSalaryFormData({ ...salaryFormData, amount: e.target.value })}
+                              placeholder="25000"
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="paymentDate">Payment Date</Label>
+                            <Input
+                              id="paymentDate"
+                              type="date"
+                              value={salaryFormData.paymentDate}
+                              onChange={(e) => setSalaryFormData({ ...salaryFormData, paymentDate: e.target.value })}
+                              required
+                            />
+                          </div>
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="month">Month</Label>
+                            <Select
+                              value={salaryFormData.month}
+                              onValueChange={(value) => setSalaryFormData({ ...salaryFormData, month: value })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select month" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {months.map((month) => (
+                                  <SelectItem key={month} value={month}>
+                                    {month}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="year">Year</Label>
+                            <Select
+                              value={salaryFormData.year}
+                              onValueChange={(value) => setSalaryFormData({ ...salaryFormData, year: value })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {years.map((year) => (
+                                  <SelectItem key={year} value={year}>
+                                    {year}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="paymentMethod">Payment Method</Label>
+                          <Select
+                            value={salaryFormData.paymentMethod}
+                            onValueChange={(value) => setSalaryFormData({ ...salaryFormData, paymentMethod: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Cash">Cash</SelectItem>
+                              <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                              <SelectItem value="Cheque">Cheque</SelectItem>
+                              <SelectItem value="UPI">UPI</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="notes">Notes</Label>
+                          <Textarea
+                            id="notes"
+                            value={salaryFormData.notes}
+                            onChange={(e) => setSalaryFormData({ ...salaryFormData, notes: e.target.value })}
+                            placeholder="Payment notes or remarks"
+                            rows={2}
+                          />
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="paymentDate">Payment Date</Label>
-                        <Input
-                          id="paymentDate"
-                          type="date"
-                          value={salaryFormData.paymentDate}
-                          onChange={(e) => setSalaryFormData({ ...salaryFormData, paymentDate: e.target.value })}
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="month">Month</Label>
-                        <Select
-                          value={salaryFormData.month}
-                          onValueChange={(value) => setSalaryFormData({ ...salaryFormData, month: value })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select month" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {months.map((month) => (
-                              <SelectItem key={month} value={month}>
-                                {month}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="year">Year</Label>
-                        <Select
-                          value={salaryFormData.year}
-                          onValueChange={(value) => setSalaryFormData({ ...salaryFormData, year: value })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {years.map((year) => (
-                              <SelectItem key={year} value={year}>
-                                {year}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="paymentMethod">Payment Method</Label>
-                      <Select
-                        value={salaryFormData.paymentMethod}
-                        onValueChange={(value) => setSalaryFormData({ ...salaryFormData, paymentMethod: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Cash">Cash</SelectItem>
-                          <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
-                          <SelectItem value="Cheque">Cheque</SelectItem>
-                          <SelectItem value="UPI">UPI</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="notes">Notes</Label>
-                      <Textarea
-                        id="notes"
-                        value={salaryFormData.notes}
-                        onChange={(e) => setSalaryFormData({ ...salaryFormData, notes: e.target.value })}
-                        placeholder="Payment notes or remarks"
-                        rows={2}
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button type="submit">Add Payment</Button>
-                  </DialogFooter>
-                </form>
+                      <DialogFooter>
+                        <Button type="submit">Add Payment</Button>
+                      </DialogFooter>
+                    </form>
               </DialogContent>
             </Dialog>
+            </div>
           </div>
 
-          {/* Teacher-wise Salary Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Current Month Salary Status</CardTitle>
-              <CardDescription>January 2024 salary payment status for all teachers</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Teacher</TableHead>
-                    <TableHead>Monthly Salary</TableHead>
-                    <TableHead>Paid Amount</TableHead>
-                    <TableHead>Remaining</TableHead>
-                    <TableHead>Payments</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {teachers.map((teacher) => {
-                    const summary = getTeacherSalarySummary(teacher.id, "January", "2024")
-                    const isFullyPaid = summary.remaining <= 0
-                    return (
-                      <TableRow key={teacher.id}>
-                        <TableCell className="font-medium">{teacher.name}</TableCell>
-                        <TableCell>Rs. {summary.monthlySalary.toLocaleString()}</TableCell>
-                        <TableCell>Rs. {summary.totalPaid.toLocaleString()}</TableCell>
-                        <TableCell>
-                          <span className={summary.remaining > 0 ? "text-red-600" : "text-green-600"}>
-                            Rs. {Math.max(0, summary.remaining).toLocaleString()}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{summary.recordCount} payments</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={isFullyPaid ? "default" : "destructive"}>
-                            {isFullyPaid ? "Complete" : "Pending"}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                     {/* Teacher-wise Salary Summary */}
+           <Card>
+             <CardHeader>
+               <CardTitle>Current Month Salary Status</CardTitle>
+               <CardDescription>{new Date().toLocaleString("default", { month: "long" })} {new Date().getFullYear()} salary payment status for all teachers</CardDescription>
+             </CardHeader>
+             <CardContent>
+               <Table>
+                 <TableHeader>
+                   <TableRow>
+                     <TableHead>Teacher</TableHead>
+                     <TableHead>Monthly Salary</TableHead>
+                     <TableHead>Paid Amount</TableHead>
+                     <TableHead>Remaining</TableHead>
+                     <TableHead>Payments</TableHead>
+                     <TableHead>Status</TableHead>
+                   </TableRow>
+                 </TableHeader>
+                 <TableBody>
+                   {teachers.map((teacher) => {
+                     const currentMonth = new Date().toLocaleString("default", { month: "long" })
+                     const currentYear = new Date().getFullYear().toString()
+                     const summary = getTeacherSalarySummary(teacher.id, currentMonth, currentYear)
+                     const isFullyPaid = summary.remaining <= 0
+                     return (
+                       <TableRow key={teacher.id}>
+                         <TableCell className="font-medium">{teacher.name}</TableCell>
+                         <TableCell>Rs. {summary.monthlySalary.toLocaleString()}</TableCell>
+                         <TableCell>Rs. {summary.totalPaid.toLocaleString()}</TableCell>
+                         <TableCell>
+                           <span className={summary.remaining > 0 ? "text-red-600" : "text-green-600"}>
+                             Rs. {Math.max(0, summary.remaining).toLocaleString()}
+                           </span>
+                         </TableCell>
+                         <TableCell>
+                           <Badge variant="outline">{summary.recordCount} payments</Badge>
+                         </TableCell>
+                         <TableCell>
+                           <Badge variant={isFullyPaid ? "default" : "destructive"}>
+                             {isFullyPaid ? "Complete" : "Pending"}
+                           </Badge>
+                         </TableCell>
+                       </TableRow>
+                     )
+                   })}
+                 </TableBody>
+               </Table>
+             </CardContent>
+           </Card>
 
           {/* Salary Payment History */}
           <Card>

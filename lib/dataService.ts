@@ -1,6 +1,6 @@
 // Types for our data
 export interface Student {
-  id: number
+  id: string
   name: string
   batch: string
   fees: number
@@ -12,7 +12,7 @@ export interface Student {
 }
 
 export interface Batch {
-  id: number
+  id: string
   name: string
   teacher: string
   students: number
@@ -22,7 +22,7 @@ export interface Batch {
 }
 
 export interface Teacher {
-  id: number
+  id: string
   name: string
   subject: string
   contact?: string
@@ -34,8 +34,8 @@ export interface Teacher {
 }
 
 export interface FeeRecord {
-  id: number
-  studentId: number
+  id: string
+  studentId: string
   studentName: string
   batch: string
   amount: number
@@ -47,8 +47,8 @@ export interface FeeRecord {
 }
 
 export interface SalaryRecord {
-  id: number
-  teacherId: number
+  id: string
+  teacherId: string
   teacherName: string
   amount: number
   month: string
@@ -59,12 +59,21 @@ export interface SalaryRecord {
   type: 'full' | 'partial'
 }
 
+export interface Expense {
+  id: string
+  name: string
+  description: string
+  amount: number
+  date: string
+}
+
 export interface AppData {
   students: Student[]
   batches: Batch[]
   teachers: Teacher[]
   feeRecords: FeeRecord[]
   salaryRecords: SalaryRecord[]
+  expenses: Expense[]
 }
 
 // Helper function to fetch data from API
@@ -83,13 +92,14 @@ async function fetchData(): Promise<AppData> {
       batches: [],
       teachers: [],
       feeRecords: [],
-      salaryRecords: []
+      salaryRecords: [],
+      expenses: []
     }
   }
 }
 
 // Helper function to update data via API
-async function updateData(action: string, data?: any, id?: number): Promise<boolean> {
+async function updateData(action: string, data?: any, id?: string): Promise<boolean> {
   try {
     const response = await fetch('/api/data', {
       method: 'POST',
@@ -118,7 +128,7 @@ export const studentService = {
     return data.students
   },
 
-  getById: async (id: number): Promise<Student | undefined> => {
+  getById: async (id: string): Promise<Student | undefined> => {
     const data = await fetchData()
     return data.students.find(student => student.id === id)
   },
@@ -128,10 +138,10 @@ export const studentService = {
     if (!success) {
       throw new Error('Failed to create student')
     }
-    return { ...student, id: Date.now() }
+    return { ...student, id: Date.now().toString() }
   },
 
-  update: async (id: number, updates: Partial<Student>): Promise<Student | null> => {
+  update: async (id: string, updates: Partial<Student>): Promise<Student | null> => {
     const success = await updateData('updateStudent', updates, id)
     if (!success) {
       return null
@@ -140,7 +150,7 @@ export const studentService = {
     return data.students.find(student => student.id === id) || null
   },
 
-  delete: async (id: number): Promise<boolean> => {
+  delete: async (id: string): Promise<boolean> => {
     return await updateData('deleteStudent', undefined, id)
   }
 }
@@ -152,7 +162,7 @@ export const batchService = {
     return data.batches
   },
 
-  getById: async (id: number): Promise<Batch | undefined> => {
+  getById: async (id: string): Promise<Batch | undefined> => {
     const data = await fetchData()
     return data.batches.find(batch => batch.id === id)
   },
@@ -162,10 +172,10 @@ export const batchService = {
     if (!success) {
       throw new Error('Failed to create batch')
     }
-    return { ...batch, id: Date.now() }
+    return { ...batch, id: Date.now().toString() }
   },
 
-  update: async (id: number, updates: Partial<Batch>): Promise<Batch | null> => {
+  update: async (id: string, updates: Partial<Batch>): Promise<Batch | null> => {
     const success = await updateData('updateBatch', updates, id)
     if (!success) {
       return null
@@ -174,7 +184,7 @@ export const batchService = {
     return data.batches.find(batch => batch.id === id) || null
   },
 
-  delete: async (id: number): Promise<boolean> => {
+  delete: async (id: string): Promise<boolean> => {
     return await updateData('deleteBatch', undefined, id)
   }
 }
@@ -186,7 +196,7 @@ export const teacherService = {
     return data.teachers
   },
 
-  getById: async (id: number): Promise<Teacher | undefined> => {
+  getById: async (id: string): Promise<Teacher | undefined> => {
     const data = await fetchData()
     return data.teachers.find(teacher => teacher.id === id)
   },
@@ -196,10 +206,10 @@ export const teacherService = {
     if (!success) {
       throw new Error('Failed to create teacher')
     }
-    return { ...teacher, id: Date.now() }
+    return { ...teacher, id: Date.now().toString() }
   },
 
-  update: async (id: number, updates: Partial<Teacher>): Promise<Teacher | null> => {
+  update: async (id: string, updates: Partial<Teacher>): Promise<Teacher | null> => {
     const success = await updateData('updateTeacher', updates, id)
     if (!success) {
       return null
@@ -208,7 +218,7 @@ export const teacherService = {
     return data.teachers.find(teacher => teacher.id === id) || null
   },
 
-  delete: async (id: number): Promise<boolean> => {
+  delete: async (id: string): Promise<boolean> => {
     return await updateData('deleteTeacher', undefined, id)
   }
 }
@@ -220,12 +230,12 @@ export const feeRecordService = {
     return data.feeRecords
   },
 
-  getById: async (id: number): Promise<FeeRecord | undefined> => {
+  getById: async (id: string): Promise<FeeRecord | undefined> => {
     const data = await fetchData()
     return data.feeRecords.find(record => record.id === id)
   },
 
-  getByStudentId: async (studentId: number): Promise<FeeRecord[]> => {
+  getByStudentId: async (studentId: string): Promise<FeeRecord[]> => {
     const data = await fetchData()
     return data.feeRecords.filter(record => record.studentId === studentId)
   },
@@ -235,10 +245,10 @@ export const feeRecordService = {
     if (!success) {
       throw new Error('Failed to create fee record')
     }
-    return { ...record, id: Date.now() }
+    return { ...record, id: Date.now().toString() }
   },
 
-  update: async (id: number, updates: Partial<FeeRecord>): Promise<FeeRecord | null> => {
+  update: async (id: string, updates: Partial<FeeRecord>): Promise<FeeRecord | null> => {
     const success = await updateData('updateFeeRecord', updates, id)
     if (!success) {
       return null
@@ -247,11 +257,11 @@ export const feeRecordService = {
     return data.feeRecords.find(record => record.id === id) || null
   },
 
-  delete: async (id: number): Promise<boolean> => {
+  delete: async (id: string): Promise<boolean> => {
     return await updateData('deleteFeeRecord', undefined, id)
   },
 
-  markAsPaid: async (id: number, paymentMethod: string = 'Cash'): Promise<FeeRecord | null> => {
+  markAsPaid: async (id: string, paymentMethod: string = 'Cash'): Promise<FeeRecord | null> => {
     const success = await updateData('markFeePaid', { paymentMethod }, id)
     if (!success) {
       return null
@@ -260,7 +270,7 @@ export const feeRecordService = {
     return data.feeRecords.find(record => record.id === id) || null
   },
 
-  markAsPending: async (id: number): Promise<FeeRecord | null> => {
+  markAsPending: async (id: string): Promise<FeeRecord | null> => {
     const success = await updateData('markFeePending', undefined, id)
     if (!success) {
       return null
@@ -277,12 +287,12 @@ export const salaryRecordService = {
     return data.salaryRecords
   },
 
-  getById: async (id: number): Promise<SalaryRecord | undefined> => {
+  getById: async (id: string): Promise<SalaryRecord | undefined> => {
     const data = await fetchData()
     return data.salaryRecords.find(record => record.id === id)
   },
 
-  getByTeacherId: async (teacherId: number): Promise<SalaryRecord[]> => {
+  getByTeacherId: async (teacherId: string): Promise<SalaryRecord[]> => {
     const data = await fetchData()
     return data.salaryRecords.filter(record => record.teacherId === teacherId)
   },
@@ -292,10 +302,10 @@ export const salaryRecordService = {
     if (!success) {
       throw new Error('Failed to create salary record')
     }
-    return { ...record, id: Date.now() }
+    return { ...record, id: Date.now().toString() }
   },
 
-  update: async (id: number, updates: Partial<SalaryRecord>): Promise<SalaryRecord | null> => {
+  update: async (id: string, updates: Partial<SalaryRecord>): Promise<SalaryRecord | null> => {
     const success = await updateData('updateSalaryRecord', updates, id)
     if (!success) {
       return null
@@ -304,7 +314,7 @@ export const salaryRecordService = {
     return data.salaryRecords.find(record => record.id === id) || null
   },
 
-  delete: async (id: number): Promise<boolean> => {
+  delete: async (id: string): Promise<boolean> => {
     return await updateData('deleteSalaryRecord', undefined, id)
   }
 }
@@ -321,12 +331,14 @@ export const dashboardService = {
     const pendingFees = data.feeRecords
       .filter(r => r.status !== 'paid')
       .reduce((sum, record) => sum + record.amount, 0)
+    const totalExpenses = data.expenses.reduce((sum, expense) => sum + expense.amount, 0)
 
     return {
       totalStudents,
       totalBatches,
       totalRevenue,
-      pendingFees
+      pendingFees,
+      totalExpenses
     }
   },
 
@@ -358,5 +370,39 @@ export const dashboardService = {
       amount: data.amount,
       dueDate: new Date().toISOString().split('T')[0] // Today's date for demo
     }))
+  }
+}
+
+// Expense operations
+export const expenseService = {
+  getAll: async (): Promise<Expense[]> => {
+    const data = await fetchData()
+    return data.expenses
+  },
+
+  getById: async (id: string): Promise<Expense | undefined> => {
+    const data = await fetchData()
+    return data.expenses.find(expense => expense.id === id)
+  },
+
+  create: async (expense: Omit<Expense, 'id'>): Promise<Expense> => {
+    const success = await updateData('createExpense', expense)
+    if (!success) {
+      throw new Error('Failed to create expense')
+    }
+    return { ...expense, id: Date.now().toString() }
+  },
+
+  update: async (id: string, updates: Partial<Expense>): Promise<Expense | null> => {
+    const success = await updateData('updateExpense', updates, id)
+    if (!success) {
+      return null
+    }
+    const data = await fetchData()
+    return data.expenses.find(expense => expense.id === id) || null
+  },
+
+  delete: async (id: string): Promise<boolean> => {
+    return await updateData('deleteExpense', undefined, id)
   }
 } 

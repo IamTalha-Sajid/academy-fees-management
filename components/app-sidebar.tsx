@@ -1,6 +1,6 @@
 "use client"
 
-import { GraduationCap, LayoutDashboard, Users, DollarSign, FileText, BookOpen } from "lucide-react"
+import { GraduationCap, LayoutDashboard, Users, DollarSign, FileText, BookOpen, Receipt } from "lucide-react"
 import Link from "next/link"
 
 import {
@@ -41,6 +41,11 @@ const menuItems = [
     title: "Fee Collection",
     url: "/fees",
     icon: DollarSign,
+  },
+  {
+    title: "Expense Tracking",
+    url: "/expenses",
+    icon: Receipt,
   },
   {
     title: "Reports",

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { GraduationCap, Users, DollarSign, AlertCircle } from "lucide-react"
+import { GraduationCap, Users, DollarSign, AlertCircle, Receipt } from "lucide-react"
 import { dashboardService } from "@/lib/dataService"
 
 export default function Dashboard() {
@@ -11,7 +11,8 @@ export default function Dashboard() {
     totalStudents: 0,
     totalBatches: 0,
     totalRevenue: 0,
-    pendingFees: 0
+    pendingFees: 0,
+    totalExpenses: 0
   })
   const [recentPayments, setRecentPayments] = useState<any[]>([])
   const [upcomingDues, setUpcomingDues] = useState<any[]>([])
@@ -74,6 +75,14 @@ export default function Dashboard() {
       trend: "-5%",
       color: "text-red-600",
     },
+    {
+      title: "Total Expenses",
+      value: `Rs. ${stats.totalExpenses.toLocaleString()}`,
+      description: "All time expenses",
+      icon: Receipt,
+      trend: "Tracked",
+      color: "text-orange-600",
+    },
   ]
 
   if (loading) {
@@ -95,7 +104,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         {statsData.map((stat) => (
           <Card key={stat.title}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
