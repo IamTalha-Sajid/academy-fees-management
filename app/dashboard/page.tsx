@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { GraduationCap, Users, DollarSign, AlertCircle, Receipt, BookOpen, FileText } from "lucide-react"
 import { dashboardService } from "@/lib/dataService"
 import { useRouter } from "next/navigation"
+import PageProtection from "@/components/PageProtection"
 
 export default function Dashboard() {
   const router = useRouter()
@@ -99,11 +100,12 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome to The Universal Academy fees management system</p>
-      </div>
+    <PageProtection>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">Welcome to The Universal Academy fees management system</p>
+        </div>
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
@@ -263,5 +265,6 @@ export default function Dashboard() {
         </CardContent>
       </Card>
     </div>
+    </PageProtection>
   )
 }
