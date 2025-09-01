@@ -3,9 +3,12 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
-import Dashboard from './(protected)/page'
 
-export default function RootPage() {
+interface ProtectedRouteProps {
+  children: React.ReactNode
+}
+
+export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading } = useAuth()
   const router = useRouter()
 
@@ -27,9 +30,8 @@ export default function RootPage() {
   }
 
   if (!isAuthenticated) {
-    return null
+    return null // Will redirect to login
   }
 
-  // If authenticated, render the dashboard content directly
-  return <Dashboard />
+  return <>{children}</>
 }

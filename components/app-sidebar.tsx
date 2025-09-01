@@ -1,7 +1,9 @@
 "use client"
 
-import { GraduationCap, LayoutDashboard, Users, DollarSign, FileText, BookOpen, Receipt } from "lucide-react"
+import { GraduationCap, LayoutDashboard, Users, DollarSign, FileText, BookOpen, Receipt, LogOut, User, Shield } from "lucide-react"
 import Link from "next/link"
+import { useAuth } from "@/contexts/AuthContext"
+import { Button } from "@/components/ui/button"
 
 import {
   Sidebar,
@@ -52,9 +54,16 @@ const menuItems = [
     url: "/reports",
     icon: FileText,
   },
+  {
+    title: "Admin Management",
+    url: "/admin",
+    icon: Shield,
+  },
 ]
 
 export function AppSidebar() {
+  const { admin, logout } = useAuth()
+
   return (
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border">
@@ -86,8 +95,26 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border">
-        <div className="p-2">
-          <p className="text-xs text-muted-foreground">© 2024 The Universal Academy</p>
+        <div className="p-4 space-y-3">
+          {admin && (
+            <div className="flex items-center gap-2 p-2 bg-muted rounded-lg">
+              <User className="h-4 w-4 text-muted-foreground" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{admin.username}</p>
+                <p className="text-xs text-muted-foreground capitalize">{admin.role}</p>
+              </div>
+            </div>
+          )}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full" 
+            onClick={logout}
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Logout
+          </Button>
+          <p className="text-xs text-muted-foreground text-center">© 2024 The Universal Academy</p>
         </div>
       </SidebarFooter>
     </Sidebar>
