@@ -48,7 +48,6 @@ const BatchSchema = new Schema<IBatch>({
 })
 
 // Create indexes for better performance
-BatchSchema.index({ name: 1 })
 BatchSchema.index({ teacher: 1 })
 BatchSchema.index({ status: 1 })
 

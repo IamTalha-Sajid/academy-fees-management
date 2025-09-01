@@ -47,7 +47,6 @@ adminSchema.methods.comparePassword = async function(candidatePassword: string) 
 }
 
 // Create indexes
-adminSchema.index({ username: 1 })
 adminSchema.index({ isActive: 1 })
 
 export default mongoose.models.Admin || mongoose.model('Admin', adminSchema)
