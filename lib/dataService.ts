@@ -133,6 +133,11 @@ export const studentService = {
     return data.students.find(student => student.id === id)
   },
 
+  getByBatch: async (batchName: string): Promise<Student[]> => {
+    const data = await fetchData()
+    return data.students.filter(student => student.batch === batchName && student.status === 'active')
+  },
+
   create: async (student: Omit<Student, 'id'>): Promise<Student> => {
     const success = await updateData('createStudent', student)
     if (!success) {

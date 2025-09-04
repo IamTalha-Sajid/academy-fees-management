@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CalendarDays, DollarSign, Filter, Download, Plus, AlertTriangle, RefreshCw, FileText, Search } from "lucide-react"
 import { feeRecordService, batchService, studentService, type FeeRecord } from "@/lib/dataService"
 import { useToast } from "@/components/ui/use-toast"
+import PageProtection from "@/components/PageProtection"
 
   const months = [
     "January",
@@ -43,6 +44,7 @@ export default function FeeCollection() {
   const [batches, setBatches] = useState<string[]>([])
   const [students, setStudents] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState("")
+  const [selectedStatus, setSelectedStatus] = useState("All Status")
 
   // Load data on component mount
   useEffect(() => {
@@ -399,13 +401,28 @@ Generated on: ${new Date().toLocaleDateString()}
     }
   }
 
+  const isOverdue = (record: FeeRecord) => {
+    const recordDate = new Date(`${record.year}-${months.indexOf(record.month) + 1}-01`)
+    const currentDate = new Date()
+    const currentMonthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+    
+    // Only mark as overdue if it's from a previous month AND unpaid
+    return record.status !== 'paid' && recordDate < currentMonthStart
+  }
+
   const filteredRecords = feeRecords.filter((record) => {
     const matchesSearch = searchTerm === "" || 
       record.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       record.batch.toLowerCase().includes(searchTerm.toLowerCase())
     
+    const matchesStatus = selectedStatus === "All Status" || 
+      (selectedStatus === "paid" && record.status === "paid") ||
+      (selectedStatus === "pending" && record.status === "pending") ||
+      (selectedStatus === "overdue" && isOverdue(record))
+    
     return (
       matchesSearch &&
+      matchesStatus &&
       (selectedBatch === "All Batches" || record.batch === selectedBatch) &&
       (selectedMonth === "All Months" || record.month === selectedMonth) &&
       (selectedYear === "All Years" || record.year === selectedYear)
@@ -610,15 +627,6 @@ Generated on: ${new Date().toLocaleDateString()}
     }
   }
 
-  const isOverdue = (record: FeeRecord) => {
-    const recordDate = new Date(`${record.year}-${months.indexOf(record.month) + 1}-01`)
-    const currentDate = new Date()
-    const currentMonthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
-    
-    // Only mark as overdue if it's from a previous month AND unpaid
-    return record.status !== 'paid' && recordDate < currentMonthStart
-  }
-
   const totalAmount = filteredRecords.reduce((sum, record) => sum + record.amount, 0)
   const paidAmount = filteredRecords.filter((r) => r.status === "paid").reduce((sum, record) => sum + record.amount, 0)
   const pendingAmount = totalAmount - paidAmount
@@ -633,7 +641,8 @@ Generated on: ${new Date().toLocaleDateString()}
   const isCurrentMonth = selectedMonth === currentMonth && selectedYear === currentYear
 
   return (
-    <div className="space-y-6">
+    <PageProtection>
+      <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Fee Collection</h1>
@@ -809,7 +818,7 @@ Generated on: ${new Date().toLocaleDateString()}
             </div>
             <div className="space-y-2">
               <Label>Status</Label>
-              <Select value="All Status" onValueChange={() => {}}>
+              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
                 <SelectTrigger>
                   <SelectValue placeholder="All Status" />
                 </SelectTrigger>
@@ -832,7 +841,7 @@ Generated on: ${new Date().toLocaleDateString()}
                      <CardDescription>
              {feeRecords.length === 0 
                ? `Select the current month (${currentMonth} ${currentYear}) to generate fee records. Fees can only be generated for the current month.`
-               : `Manage and track fee payments (overdue amounts are accumulated). Use 'Generate Missing Fees' to add fees for new students. Showing ${filteredRecords.length} records for ${selectedBatch} | ${selectedMonth} | ${selectedYear}${searchTerm ? ` | Search: "${searchTerm}"` : ''}.`
+               : `Manage and track fee payments (overdue amounts are accumulated). Use 'Generate Missing Fees' to add fees for new students. Showing ${filteredRecords.length} records for ${selectedBatch} | ${selectedMonth} | ${selectedYear} | ${selectedStatus}${searchTerm ? ` | Search: "${searchTerm}"` : ''}.`
              }
            </CardDescription>
         </CardHeader>
@@ -934,5 +943,6 @@ Generated on: ${new Date().toLocaleDateString()}
         </CardContent>
       </Card>
     </div>
+    </PageProtection>
   )
 }

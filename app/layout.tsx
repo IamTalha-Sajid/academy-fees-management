@@ -31,28 +31,28 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
+    <html lang="en" className="dark">
+      <body className={`${inter.className} bg-slate-900 text-white`}>
         <AuthProvider>
           <SidebarProvider>
             <AppSidebar />
-            <SidebarInset>
-              <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-                <SidebarTrigger className="-ml-1" />
-                <Separator orientation="vertical" className="mr-2 h-4" />
+            <SidebarInset className="bg-slate-900">
+              <header className="flex h-16 shrink-0 items-center gap-2 border-b border-slate-700 px-4 bg-slate-800">
+                <SidebarTrigger className="-ml-1 text-slate-300 hover:text-white hover:bg-slate-700" />
+                <Separator orientation="vertical" className="mr-2 h-4 bg-slate-600" />
                 <Breadcrumb>
                   <BreadcrumbList>
                     <BreadcrumbItem className="hidden md:block">
-                      <BreadcrumbLink href="/">The Universal Academy</BreadcrumbLink>
+                      <BreadcrumbLink href="/" className="text-slate-300 hover:text-white">The Universal Academy</BreadcrumbLink>
                     </BreadcrumbItem>
-                    <BreadcrumbSeparator className="hidden md:block" />
+                    <BreadcrumbSeparator className="hidden md:block text-slate-500" />
                     <BreadcrumbItem>
-                      <BreadcrumbPage>Dashboard</BreadcrumbPage>
+                      <BreadcrumbPage className="text-white">Dashboard</BreadcrumbPage>
                     </BreadcrumbItem>
                   </BreadcrumbList>
                 </Breadcrumb>
               </header>
-              <div className="flex flex-1 flex-col gap-4 p-4">{children}</div>
+              <div className="flex flex-1 flex-col gap-4 p-4 bg-slate-900">{children}</div>
             </SidebarInset>
           </SidebarProvider>
           <Toaster />

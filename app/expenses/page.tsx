@@ -17,7 +17,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Plus, Edit, Trash2, Search, DollarSign, Calendar, AlertTriangle, TrendingDown } from "lucide-react"
+import { Plus, Edit, Trash2, Search, Calendar, AlertTriangle, TrendingDown } from "lucide-react"
 import { expenseService, type Expense } from "@/lib/dataService"
 
 export default function ExpenseManagement() {
@@ -150,7 +150,7 @@ export default function ExpenseManagement() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <span className="text-muted-foreground font-bold text-sm">Rs</span>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">Rs. {getTotalExpenses().toLocaleString()}</div>
