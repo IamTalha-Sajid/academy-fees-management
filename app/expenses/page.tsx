@@ -17,7 +17,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Plus, Edit, Trash2, Search, Calendar, AlertTriangle, TrendingDown } from "lucide-react"
+import { Plus, Edit, Trash2, Search, Calendar, AlertTriangle, TrendingDown, Sparkles } from "lucide-react"
 import { expenseService, type Expense } from "@/lib/dataService"
 
 export default function ExpenseManagement() {
@@ -127,17 +127,23 @@ export default function ExpenseManagement() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Expense Management</h1>
-          <p className="text-muted-foreground">Loading expense data...</p>
+      <div className="space-y-8 bg-slate-900 min-h-screen p-6">
+        <div className="text-center py-12">
+          <div className="relative">
+            <div className="w-16 h-16 border-4 border-slate-600 border-t-orange-500 rounded-full animate-spin mx-auto"></div>
+            <Sparkles className="w-6 h-6 text-orange-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight mt-6 bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">
+            Expense Management
+          </h1>
+          <p className="text-slate-400 mt-2">Loading your expense data...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 bg-slate-900 min-h-screen p-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Expense Management</h1>

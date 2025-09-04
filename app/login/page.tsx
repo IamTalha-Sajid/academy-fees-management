@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,9 +15,19 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [pageLoading, setPageLoading] = useState(true)
   const { login } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
+
+  // Simulate initial page loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPageLoading(false)
+    }, 1200) // 1.2 second loading time
+
+    return () => clearTimeout(timer)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,6 +58,32 @@ export default function LoginPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // Show loading screen
+  if (pageLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-800 relative overflow-hidden">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+        </div>
+        
+        <div className="text-center relative z-10">
+          <div className="relative">
+            <div className="w-20 h-20 border-4 border-slate-600 border-t-purple-500 rounded-full animate-spin mx-auto"></div>
+            <Sparkles className="w-8 h-8 text-purple-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+          </div>
+          <h1 className="text-4xl font-bold tracking-tight mt-8 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+            The Universal Academy
+          </h1>
+          <p className="text-slate-300 mt-3 text-lg">Management System</p>
+          <p className="text-slate-400 mt-4">Preparing your login experience...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -88,7 +124,7 @@ export default function LoginPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
-                disabled={isLoading}
+                disabled={isLoading || pageLoading}
                 className="!bg-slate-700/50 !border-slate-600 text-white placeholder:text-slate-400 focus:border-purple-500 focus:ring-purple-500/20"
               />
             </div>
@@ -103,7 +139,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  disabled={isLoading}
+                  disabled={isLoading || pageLoading}
                   className="!bg-slate-700/50 !border-slate-600 text-white placeholder:text-slate-400 focus:border-purple-500 focus:ring-purple-500/20 pr-10"
                 />
                 <Button
@@ -112,7 +148,7 @@ export default function LoginPage() {
                   size="sm"
                   className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-slate-600/50 text-slate-400 hover:text-slate-300"
                   onClick={() => setShowPassword(!showPassword)}
-                  disabled={isLoading}
+                  disabled={isLoading || pageLoading}
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -126,7 +162,7 @@ export default function LoginPage() {
             <Button
               type="submit"
               className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-2.5 rounded-lg transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-              disabled={isLoading || !username || !password}
+              disabled={isLoading || pageLoading || !username || !password}
             >
               {isLoading ? (
                 <div className="flex items-center gap-2">
