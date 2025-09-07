@@ -10,9 +10,12 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Download, TrendingUp, TrendingDown, Users, Calendar, AlertTriangle, Sparkles, Activity, BarChart3, FileText } from "lucide-react"
 import { feeRecordService, studentService, batchService, type FeeRecord } from "@/lib/dataService"
 import { useToast } from "@/components/ui/use-toast"
+import PageProtection from "@/components/PageProtection"
+import { useSettings } from "@/contexts/SettingsContext"
 
 export default function Reports() {
   const { toast } = useToast()
+  const { showFeesAndIncome } = useSettings()
   const [selectedYear, setSelectedYear] = useState("2025")
   const [feeRecords, setFeeRecords] = useState<FeeRecord[]>([])
   const [students, setStudents] = useState<any[]>([])
@@ -167,8 +170,33 @@ export default function Reports() {
     )
   }
 
+  // Show message when fees are disabled
+  if (!showFeesAndIncome) {
+    return (
+      <PageProtection>
+        <div className="space-y-8 bg-slate-900 min-h-screen p-6">
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center">
+              <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-600 mb-6">
+                <AlertTriangle className="h-16 w-16 text-amber-400 mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-white mb-2">Reports Disabled</h2>
+                <p className="text-slate-300 mb-4">
+                  Financial reports have been disabled by the administrator.
+                </p>
+                <p className="text-slate-400 text-sm">
+                  Contact your administrator to enable financial reporting.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </PageProtection>
+    )
+  }
+
   return (
-    <div className="space-y-8 bg-slate-900 min-h-screen p-6">
+    <PageProtection>
+      <div className="space-y-8 bg-slate-900 min-h-screen p-6">
       {/* Enhanced Dark Mode Header */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-purple-900 to-slate-800 p-8 text-white border border-slate-700">
         <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10"></div>
@@ -448,6 +476,7 @@ export default function Reports() {
             </div>
           </CardContent>
         </Card>
-    </div>
+      </div>
+    </PageProtection>
   )
 }

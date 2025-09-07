@@ -12,6 +12,7 @@ import { CalendarDays, Filter, Download, Plus, AlertTriangle, RefreshCw, FileTex
 import { feeRecordService, batchService, studentService, type FeeRecord } from "@/lib/dataService"
 import { useToast } from "@/components/ui/use-toast"
 import PageProtection from "@/components/PageProtection"
+import { useSettings } from "@/contexts/SettingsContext"
 
   const months = [
     "January",
@@ -31,6 +32,7 @@ const years = ["2024", "2025", "2023"]
 
 export default function FeeCollection() {
   const { toast } = useToast()
+  const { showFeesAndIncome } = useSettings()
   const [selectedBatch, setSelectedBatch] = useState("All Batches")
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const currentDate = new Date()
@@ -639,6 +641,30 @@ Generated on: ${new Date().toLocaleDateString()}
   const currentMonth = months[currentDate.getMonth()]
   const currentYear = currentDate.getFullYear().toString()
   const isCurrentMonth = selectedMonth === currentMonth && selectedYear === currentYear
+
+  // Show message when fees are disabled
+  if (!showFeesAndIncome) {
+    return (
+      <PageProtection>
+        <div className="space-y-8 bg-slate-900 min-h-screen p-6">
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center">
+              <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-600 mb-6">
+                <AlertTriangle className="h-16 w-16 text-amber-400 mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-white mb-2">Fees Management Disabled</h2>
+                <p className="text-slate-300 mb-4">
+                  Fees and income tracking has been disabled by the administrator.
+                </p>
+                <p className="text-slate-400 text-sm">
+                  Contact your administrator to enable fees management.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </PageProtection>
+    )
+  }
 
   return (
     <PageProtection>

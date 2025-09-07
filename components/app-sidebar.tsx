@@ -3,6 +3,7 @@
 import { GraduationCap, LayoutDashboard, Users, DollarSign, FileText, BookOpen, Receipt, LogOut, User, Shield } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/contexts/AuthContext"
+import { useSettings } from "@/contexts/SettingsContext"
 import { Button } from "@/components/ui/button"
 
 import {
@@ -63,6 +64,7 @@ const menuItems = [
 
 export function AppSidebar() {
   const { admin, logout } = useAuth()
+  const { showFeesAndIncome } = useSettings()
 
   return (
     <Sidebar className="bg-slate-900 border-r border-slate-700">
@@ -82,7 +84,13 @@ export function AppSidebar() {
           <SidebarGroupLabel className="text-slate-400 font-semibold px-4 py-2">Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="px-2">
-              {menuItems.map((item) => (
+              {menuItems.filter(item => {
+                // Hide fees-related menu items when fees are disabled
+                if (!showFeesAndIncome) {
+                  return !['Fee Collection', 'Expense Tracking', 'Reports'].includes(item.title)
+                }
+                return true
+              }).map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild className="text-slate-300 hover:text-white hover:bg-slate-800 border border-transparent hover:border-slate-600 transition-all duration-200">
                     <Link href={item.url} className="flex items-center gap-3 px-3 py-2 rounded-lg">

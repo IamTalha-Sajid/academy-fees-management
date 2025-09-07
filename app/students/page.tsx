@@ -19,6 +19,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Edit, Trash2, Search, Phone, Mail, Sparkles, Users, BookOpen, TrendingUp, ArrowUpRight, Activity } from "lucide-react"
 import { studentService, batchService, type Student } from "@/lib/dataService"
+import PageProtection from "@/components/PageProtection"
 
 export default function StudentManagement() {
   const [students, setStudents] = useState<Student[]>([])
@@ -61,30 +62,53 @@ export default function StudentManagement() {
     }
   }
 
-  const filteredStudents = students.filter(
-    (student) =>
-      student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.batch.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (student.contact && student.contact.includes(searchTerm))
-  )
+  // Helper function to convert name to proper case
+  const toProperCase = (name: string) => {
+    if (!name || typeof name !== 'string') return name
+    
+    return name
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
+  }
+
+  const filteredStudents = students
+    .filter(
+      (student) =>
+        student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.batch.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (student.contact && student.contact.includes(searchTerm))
+    )
+    .sort((a, b) => {
+      // First sort by batch name
+      if (a.batch !== b.batch) {
+        return a.batch.localeCompare(b.batch)
+      }
+      // If same batch, sort by student name
+      return a.name.localeCompare(b.name)
+    })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      // Convert name to proper case before saving
+      const processedFormData = {
+        ...formData,
+        name: toProperCase(formData.name),
+        fees: Number.parseInt(formData.fees)
+      }
+
       if (editingStudent) {
         // Update existing student
-        const updatedStudent = await studentService.update(editingStudent.id, {
-          ...formData,
-          fees: Number.parseInt(formData.fees)
-        })
+        const updatedStudent = await studentService.update(editingStudent.id, processedFormData)
         if (updatedStudent) {
           await loadStudents() // Reload the list
         }
       } else {
         // Create new student
         await studentService.create({
-          ...formData,
-          fees: Number.parseInt(formData.fees),
+          ...processedFormData,
           joinDate: new Date().toISOString().split("T")[0],
         })
         await loadStudents() // Reload the list
@@ -123,7 +147,8 @@ export default function StudentManagement() {
   }
 
   return (
-    <div className="space-y-8 bg-slate-900 min-h-screen p-6">
+    <PageProtection>
+      <div className="space-y-8 bg-slate-900 min-h-screen p-6">
       {/* Enhanced Dark Mode Header */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-green-900 to-slate-800 p-8 text-white border border-slate-700">
         <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 to-blue-500/10"></div>
@@ -173,7 +198,7 @@ export default function StudentManagement() {
                       <Input
                         id="name"
                         value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        onChange={(e) => setFormData({ ...formData, name: toProperCase(e.target.value) })}
                         placeholder="Enter student name"
                         required
                         className="!bg-slate-700/50 !border-slate-600 text-white placeholder:text-slate-400 focus:border-green-500 focus:ring-green-500/20"
@@ -395,6 +420,7 @@ export default function StudentManagement() {
           </div>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </PageProtection>
   )
 }

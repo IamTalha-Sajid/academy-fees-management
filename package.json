@@ -6,7 +6,10 @@
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+
+    "fix-names": "node scripts/fix-student-names.js",
+    "check-duplicates": "node scripts/check-duplicates.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

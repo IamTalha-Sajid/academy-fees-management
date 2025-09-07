@@ -19,8 +19,9 @@ import {
 } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Edit, Trash2, Search, Phone, Mail, DollarSign, Calendar, User, History } from "lucide-react"
+import { Plus, Edit, Trash2, Search, Phone, Mail, DollarSign, Calendar, User, History, Sparkles } from "lucide-react"
 import { teacherService, salaryRecordService, type Teacher, type SalaryRecord } from "@/lib/dataService"
+import PageProtection from "@/components/PageProtection"
 
 export default function TeacherManagement() {
   const [teachers, setTeachers] = useState<Teacher[]>([])
@@ -288,129 +289,170 @@ export default function TeacherManagement() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Teacher Management</h1>
-          <p className="text-muted-foreground">Loading teacher data...</p>
+      <PageProtection>
+        <div className="space-y-8 bg-slate-900 min-h-screen p-6">
+          <div className="text-center py-12">
+            <div className="relative">
+              <div className="w-16 h-16 border-4 border-slate-600 border-t-blue-500 rounded-full animate-spin mx-auto"></div>
+              <User className="w-6 h-6 text-blue-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+            </div>
+            <h1 className="text-3xl font-bold tracking-tight mt-6 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+              Teacher Management
+            </h1>
+            <p className="text-slate-400 mt-2">Loading teacher data...</p>
+          </div>
         </div>
-      </div>
+      </PageProtection>
     )
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Teacher Management</h1>
-          <p className="text-muted-foreground">Manage teachers and their salary payments</p>
-        </div>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Teachers</CardTitle>
-            <User className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{teachers.length}</div>
-            <p className="text-xs text-muted-foreground">
-              {teachers.filter((t) => t.status === "active").length} active
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Monthly Budget</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-                            <div className="text-2xl font-bold">Rs. {currentSummary.totalSalaryBudget.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">This month's total</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Payments</CardTitle>
-            <DollarSign className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-                            <div className="text-2xl font-bold text-red-600">Rs. {currentSummary.totalPending.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">Outstanding amount</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="teachers">Teachers</TabsTrigger>
-          <TabsTrigger value="salary">Salary Management</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="teachers" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search teachers..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8"
-              />
+    <PageProtection>
+      <div className="space-y-8 bg-slate-900 min-h-screen p-6">
+        {/* Enhanced Dark Mode Header */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 p-8 text-white border border-slate-700">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10"></div>
+          <div className="relative z-10">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-xl border border-blue-500/30">
+                  <User className="h-8 w-8 text-blue-400" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent flex items-center gap-2">
+                    Teacher Management
+                    <Sparkles className="h-6 w-6 text-blue-400 animate-pulse" />
+                  </h1>
+                  <p className="text-slate-300 mt-1">Manage teachers and their salary payments</p>
+                </div>
+              </div>
             </div>
-            <Dialog open={isTeacherDialogOpen} onOpenChange={setIsTeacherDialogOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  onClick={() => {
-                    setEditingTeacher(null)
-                    setTeacherFormData({
-                      name: "",
-                      subject: "",
-                      contact: "",
-                      email: "",
-                      batch: "",
-                      salary: "",
-                      status: "active" as "active" | "inactive",
-                    })
-                  }}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add New Teacher
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[600px]">
-                <DialogHeader>
-                  <DialogTitle>{editingTeacher ? "Edit Teacher" : "Add New Teacher"}</DialogTitle>
-                  <DialogDescription>
-                    {editingTeacher ? "Update teacher information" : "Add a new teacher to the academy."}
-                  </DialogDescription>
-                </DialogHeader>
+          </div>
+        </div>
+
+        {/* Enhanced Dark Mode Summary Cards */}
+        <div className="grid gap-6 md:grid-cols-3">
+          <Card className="border border-slate-700 shadow-lg bg-gradient-to-br from-slate-800 to-slate-900 hover:shadow-xl transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-slate-300">Total Teachers</CardTitle>
+              <div className="p-2 bg-blue-500/20 rounded-lg border border-blue-500/30">
+                <User className="h-4 w-4 text-blue-400" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-white">{teachers.length}</div>
+              <p className="text-xs text-slate-400 mt-1">
+                {teachers.filter((t) => t.status === "active").length} active
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="border border-slate-700 shadow-lg bg-gradient-to-br from-slate-800 to-slate-900 hover:shadow-xl transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-slate-300">Monthly Budget</CardTitle>
+              <div className="p-2 bg-green-500/20 rounded-lg border border-green-500/30">
+                <span className="text-green-400 font-bold text-xs">Rs</span>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-white">Rs. {currentSummary.totalSalaryBudget.toLocaleString()}</div>
+              <p className="text-xs text-slate-400 mt-1">This month's total</p>
+            </CardContent>
+          </Card>
+          <Card className="border border-slate-700 shadow-lg bg-gradient-to-br from-slate-800 to-slate-900 hover:shadow-xl transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-slate-300">Pending Payments</CardTitle>
+              <div className="p-2 bg-red-500/20 rounded-lg border border-red-500/30">
+                <span className="text-red-400 font-bold text-xs">Rs</span>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-400">Rs. {currentSummary.totalPending.toLocaleString()}</div>
+              <p className="text-xs text-slate-400 mt-1">Outstanding amount</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-2 bg-slate-800 border border-slate-700">
+            <TabsTrigger 
+              value="teachers" 
+              className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-300 hover:text-white transition-colors"
+            >
+              Teachers
+            </TabsTrigger>
+            <TabsTrigger 
+              value="salary" 
+              className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-300 hover:text-white transition-colors"
+            >
+              Salary Management
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="teachers" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="Search teachers..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8 !bg-slate-700/50 !border-slate-600 text-white placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500/20"
+                />
+              </div>
+              <Dialog open={isTeacherDialogOpen} onOpenChange={setIsTeacherDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    onClick={() => {
+                      setEditingTeacher(null)
+                      setTeacherFormData({
+                        name: "",
+                        subject: "",
+                        contact: "",
+                        email: "",
+                        batch: "",
+                        salary: "",
+                        status: "active" as "active" | "inactive",
+                      })
+                    }}
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add New Teacher
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[600px] bg-slate-800 border-slate-700">
+                  <DialogHeader>
+                    <DialogTitle className="text-white">{editingTeacher ? "Edit Teacher" : "Add New Teacher"}</DialogTitle>
+                    <DialogDescription className="text-slate-300">
+                      {editingTeacher ? "Update teacher information" : "Add a new teacher to the academy."}
+                    </DialogDescription>
+                  </DialogHeader>
                 <form onSubmit={handleTeacherSubmit}>
                   <div className="grid gap-4 py-4">
                     <div className="grid gap-4 md:grid-cols-2">
                       <div className="space-y-2">
-                        <Label htmlFor="name">Full Name</Label>
+                        <Label htmlFor="name" className="text-slate-300">Full Name</Label>
                         <Input
                           id="name"
                           value={teacherFormData.name}
                           onChange={(e) => setTeacherFormData({ ...teacherFormData, name: e.target.value })}
                           placeholder="Enter teacher name"
                           required
+                          className="!bg-slate-700/50 !border-slate-600 text-white placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500/20"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="subject">Subject</Label>
+                        <Label htmlFor="subject" className="text-slate-300">Subject</Label>
                         <Select
                           value={teacherFormData.subject}
                           onValueChange={(value) => setTeacherFormData({ ...teacherFormData, subject: value })}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className="!bg-slate-700/50 !border-slate-600 text-white focus:border-blue-500 focus:ring-blue-500/20">
                             <SelectValue placeholder="Select subject" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="bg-slate-800 border-slate-700">
                             {subjects.map((subject) => (
-                              <SelectItem key={subject} value={subject}>
+                              <SelectItem key={subject} value={subject} className="text-white hover:bg-slate-700">
                                 {subject}
                               </SelectItem>
                             ))}
@@ -420,17 +462,17 @@ export default function TeacherManagement() {
                     </div>
                     <div className="grid gap-4 md:grid-cols-2">
                       <div className="space-y-2">
-                        <Label htmlFor="batch">Batch</Label>
+                        <Label htmlFor="batch" className="text-slate-300">Batch</Label>
                         <Select
                           value={teacherFormData.batch}
                           onValueChange={(value) => setTeacherFormData({ ...teacherFormData, batch: value })}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className="!bg-slate-700/50 !border-slate-600 text-white focus:border-blue-500 focus:ring-blue-500/20">
                             <SelectValue placeholder="Select batch" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="bg-slate-800 border-slate-700">
                             {batches.map((batch) => (
-                              <SelectItem key={batch} value={batch}>
+                              <SelectItem key={batch} value={batch} className="text-white hover:bg-slate-700">
                                 {batch}
                               </SelectItem>
                             ))}
@@ -438,7 +480,7 @@ export default function TeacherManagement() {
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="salary">Monthly Salary (Rs.)</Label>
+                        <Label htmlFor="salary" className="text-slate-300">Monthly Salary (Rs.)</Label>
                         <Input
                           id="salary"
                           type="number"
@@ -446,164 +488,206 @@ export default function TeacherManagement() {
                           onChange={(e) => setTeacherFormData({ ...teacherFormData, salary: e.target.value })}
                           placeholder="25000"
                           required
+                          className="!bg-slate-700/50 !border-slate-600 text-white placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500/20"
                         />
                       </div>
                     </div>
                     <div className="grid gap-4 md:grid-cols-2">
                       <div className="space-y-2">
-                        <Label htmlFor="contact">Contact Number (Optional)</Label>
+                        <Label htmlFor="contact" className="text-slate-300">Contact Number (Optional)</Label>
                         <Input
                           id="contact"
                           value={teacherFormData.contact}
                           onChange={(e) => setTeacherFormData({ ...teacherFormData, contact: e.target.value })}
                           placeholder="9876543210"
+                          className="!bg-slate-700/50 !border-slate-600 text-white placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500/20"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="email">Email (Optional)</Label>
+                        <Label htmlFor="email" className="text-slate-300">Email (Optional)</Label>
                         <Input
                           id="email"
                           type="email"
                           value={teacherFormData.email}
                           onChange={(e) => setTeacherFormData({ ...teacherFormData, email: e.target.value })}
                           placeholder="teacher@universalacademy.edu"
+                          className="!bg-slate-700/50 !border-slate-600 text-white placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500/20"
                         />
                       </div>
                     </div>
 
                     <div className="grid gap-4 md:grid-cols-2">
                       <div className="space-y-2">
-                        <Label htmlFor="status">Status</Label>
+                        <Label htmlFor="status" className="text-slate-300">Status</Label>
                         <Select
                           value={teacherFormData.status}
                           onValueChange={(value: "active" | "inactive") => setTeacherFormData({ ...teacherFormData, status: value })}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className="!bg-slate-700/50 !border-slate-600 text-white focus:border-blue-500 focus:ring-blue-500/20">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="active">Active</SelectItem>
-                            <SelectItem value="inactive">Inactive</SelectItem>
+                          <SelectContent className="bg-slate-800 border-slate-700">
+                            <SelectItem value="active" className="text-white hover:bg-slate-700">Active</SelectItem>
+                            <SelectItem value="inactive" className="text-white hover:bg-slate-700">Inactive</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button type="submit">{editingTeacher ? "Update" : "Add"} Teacher</Button>
+                    <Button 
+                      type="submit"
+                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200"
+                    >
+                      {editingTeacher ? "Update" : "Add"} Teacher
+                    </Button>
                   </DialogFooter>
                 </form>
               </DialogContent>
             </Dialog>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>All Teachers ({filteredTeachers.length})</CardTitle>
-              <CardDescription>Manage teacher information and details</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Subject</TableHead>
-                    <TableHead>Experience</TableHead>
-                    <TableHead>Monthly Salary</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredTeachers.map((teacher) => (
-                    <TableRow key={teacher.id}>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{teacher.name}</div>
-                          <div className="text-sm text-muted-foreground">{teacher.email}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{teacher.subject}</TableCell>
-                      <TableCell>{teacher.batch}</TableCell>
-                      <TableCell>Rs. {teacher.salary.toLocaleString()}</TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          {teacher.contact && (
-                            <div className="flex items-center gap-1 text-sm">
-                              <Phone className="h-3 w-3" />
-                              {teacher.contact}
+            <Card className="border border-slate-700 shadow-lg bg-gradient-to-br from-slate-800 to-slate-900">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <div className="p-2 bg-blue-500/20 rounded-lg border border-blue-500/30">
+                    <User className="h-5 w-5 text-blue-400" />
+                  </div>
+                  All Teachers ({filteredTeachers.length})
+                </CardTitle>
+                <CardDescription className="text-slate-300">Manage teacher information and details</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-slate-700 hover:bg-slate-800/50">
+                        <TableHead className="text-slate-300 font-semibold">Name</TableHead>
+                        <TableHead className="text-slate-300 font-semibold">Subject</TableHead>
+                        <TableHead className="text-slate-300 font-semibold">Batch</TableHead>
+                        <TableHead className="text-slate-300 font-semibold">Monthly Salary</TableHead>
+                        <TableHead className="text-slate-300 font-semibold">Contact</TableHead>
+                        <TableHead className="text-slate-300 font-semibold">Status</TableHead>
+                        <TableHead className="text-slate-300 font-semibold">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredTeachers.map((teacher, index) => (
+                        <TableRow 
+                          key={teacher.id}
+                          className="border-slate-700 hover:bg-slate-800/50 transition-colors duration-200"
+                          style={{ animationDelay: `${index * 50}ms` }}
+                        >
+                          <TableCell>
+                            <div>
+                              <div className="font-medium text-white">{teacher.name}</div>
+                              <div className="text-sm text-slate-400">{teacher.email || "No email"}</div>
                             </div>
-                          )}
-                          {teacher.email && (
-                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                              <Mail className="h-3 w-3" />
-                              {teacher.email}
+                          </TableCell>
+                          <TableCell className="text-white">{teacher.subject}</TableCell>
+                          <TableCell className="text-white">{teacher.batch}</TableCell>
+                          <TableCell className="text-white">
+                            <div className="flex items-center gap-2">
+                              <div className="p-1 bg-orange-500/20 rounded border border-orange-500/30">
+                                <span className="text-orange-400 font-bold text-xs">Rs</span>
+                              </div>
+                              <span className="font-medium">Rs. {teacher.salary.toLocaleString()}</span>
                             </div>
-                          )}
-                          {!teacher.contact && !teacher.email && (
-                            <div className="text-sm text-muted-foreground">No contact info</div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={teacher.status === "active" ? "default" : "secondary"}>{teacher.status}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Button variant="outline" size="sm" onClick={() => handleEditTeacher(teacher)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={() => handleDeleteTeacher(teacher.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-1">
+                              {teacher.contact && (
+                                <div className="flex items-center gap-1 text-sm text-white">
+                                  <Phone className="h-3 w-3 text-green-400" />
+                                  {teacher.contact}
+                                </div>
+                              )}
+                              {!teacher.contact && (
+                                <div className="text-sm text-slate-400">No contact</div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge 
+                              className={`${
+                                teacher.status === "active" 
+                                  ? "bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30 hover:text-green-300" 
+                                  : "bg-slate-500/20 text-slate-400 border border-slate-500/30 hover:bg-slate-500/30 hover:text-slate-300"
+                              } font-medium transition-colors duration-200`}
+                            >
+                              {teacher.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleEditTeacher(teacher)}
+                                className="bg-blue-600/20 border-blue-500/50 text-blue-400 hover:bg-blue-600/30 hover:text-blue-300 hover:border-blue-400 transition-all duration-200"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleDeleteTeacher(teacher.id)}
+                                className="bg-red-600/20 border-red-500/50 text-red-400 hover:bg-red-600/30 hover:text-red-300 hover:border-red-400 transition-all duration-200"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
         </TabsContent>
 
-         <TabsContent value="salary" className="space-y-4">
-           <div className="flex justify-between items-center">
-             <div>
-               <h3 className="text-lg font-semibold">Salary Payments</h3>
-               <p className="text-sm text-muted-foreground">Track and manage teacher salary payments</p>
-             </div>
-             <div className="flex gap-2">
-               <Button variant="outline" onClick={() => Promise.all([loadSalaryRecords(), loadTeachers()])}>
-                 <History className="mr-2 h-4 w-4" />
-                 Refresh
-               </Button>
-               <Dialog open={isSalaryDialogOpen} onOpenChange={setIsSalaryDialogOpen}>
-                 <DialogTrigger asChild>
-                   <Button>
-                     <Plus className="mr-2 h-4 w-4" />
-                     Add Salary Payment
-                   </Button>
-                 </DialogTrigger>
-                 <DialogContent className="sm:max-w-[500px]">
-                   <DialogHeader>
-                     <DialogTitle>Add Salary Payment</DialogTitle>
-                     <DialogDescription>Record a salary payment for a teacher</DialogDescription>
-                   </DialogHeader>
-                                       <form onSubmit={handleSalarySubmit}>
+          <TabsContent value="salary" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-lg font-semibold text-white">Salary Payments</h3>
+                <p className="text-sm text-slate-300">Track and manage teacher salary payments</p>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => Promise.all([loadSalaryRecords(), loadTeachers()])}
+                  className="bg-slate-700/50 border-slate-600 text-slate-300 hover:bg-slate-600 hover:text-white transition-colors"
+                >
+                  <History className="mr-2 h-4 w-4" />
+                  Refresh
+                </Button>
+                <Dialog open={isSalaryDialogOpen} onOpenChange={setIsSalaryDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Salary Payment
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[500px] bg-slate-800 border-slate-700">
+                    <DialogHeader>
+                      <DialogTitle className="text-white">Add Salary Payment</DialogTitle>
+                      <DialogDescription className="text-slate-300">Record a salary payment for a teacher</DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleSalarySubmit}>
                       <div className="grid gap-4 py-4">
                         <div className="space-y-2">
-                          <Label htmlFor="teacherId">Teacher</Label>
+                          <Label htmlFor="teacherId" className="text-slate-300">Teacher</Label>
                           <Select
                             value={salaryFormData.teacherId}
                             onValueChange={(value) => setSalaryFormData({ ...salaryFormData, teacherId: value })}
                           >
-                            <SelectTrigger>
+                            <SelectTrigger className="!bg-slate-700/50 !border-slate-600 text-white focus:border-blue-500 focus:ring-blue-500/20">
                               <SelectValue placeholder="Select teacher" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="bg-slate-800 border-slate-700">
                               {teachers.map((teacher) => (
-                                <SelectItem key={teacher.id} value={teacher.id.toString()}>
+                                <SelectItem key={teacher.id} value={teacher.id.toString()} className="text-white hover:bg-slate-700">
                                   {teacher.name} - {teacher.subject}
                                 </SelectItem>
                               ))}
@@ -612,7 +696,7 @@ export default function TeacherManagement() {
                         </div>
                         <div className="grid gap-4 md:grid-cols-2">
                           <div className="space-y-2">
-                            <Label htmlFor="amount">Amount (Rs.)</Label>
+                            <Label htmlFor="amount" className="text-slate-300">Amount (Rs.)</Label>
                             <Input
                               id="amount"
                               type="number"
@@ -620,32 +704,34 @@ export default function TeacherManagement() {
                               onChange={(e) => setSalaryFormData({ ...salaryFormData, amount: e.target.value })}
                               placeholder="25000"
                               required
+                              className="!bg-slate-700/50 !border-slate-600 text-white placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500/20"
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="paymentDate">Payment Date</Label>
+                            <Label htmlFor="paymentDate" className="text-slate-300">Payment Date</Label>
                             <Input
                               id="paymentDate"
                               type="date"
                               value={salaryFormData.paymentDate}
                               onChange={(e) => setSalaryFormData({ ...salaryFormData, paymentDate: e.target.value })}
                               required
+                              className="!bg-slate-700/50 !border-slate-600 text-white placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500/20"
                             />
                           </div>
                         </div>
                         <div className="grid gap-4 md:grid-cols-2">
                           <div className="space-y-2">
-                            <Label htmlFor="month">Month</Label>
+                            <Label htmlFor="month" className="text-slate-300">Month</Label>
                             <Select
                               value={salaryFormData.month}
                               onValueChange={(value) => setSalaryFormData({ ...salaryFormData, month: value })}
                             >
-                              <SelectTrigger>
+                              <SelectTrigger className="!bg-slate-700/50 !border-slate-600 text-white focus:border-blue-500 focus:ring-blue-500/20">
                                 <SelectValue placeholder="Select month" />
                               </SelectTrigger>
-                              <SelectContent>
+                              <SelectContent className="bg-slate-800 border-slate-700">
                                 {months.map((month) => (
-                                  <SelectItem key={month} value={month}>
+                                  <SelectItem key={month} value={month} className="text-white hover:bg-slate-700">
                                     {month}
                                   </SelectItem>
                                 ))}
@@ -653,17 +739,17 @@ export default function TeacherManagement() {
                             </Select>
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="year">Year</Label>
+                            <Label htmlFor="year" className="text-slate-300">Year</Label>
                             <Select
                               value={salaryFormData.year}
                               onValueChange={(value) => setSalaryFormData({ ...salaryFormData, year: value })}
                             >
-                              <SelectTrigger>
+                              <SelectTrigger className="!bg-slate-700/50 !border-slate-600 text-white focus:border-blue-500 focus:ring-blue-500/20">
                                 <SelectValue />
                               </SelectTrigger>
-                              <SelectContent>
+                              <SelectContent className="bg-slate-800 border-slate-700">
                                 {years.map((year) => (
-                                  <SelectItem key={year} value={year}>
+                                  <SelectItem key={year} value={year} className="text-white hover:bg-slate-700">
                                     {year}
                                   </SelectItem>
                                 ))}
@@ -672,35 +758,41 @@ export default function TeacherManagement() {
                           </div>
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="paymentMethod">Payment Method</Label>
+                          <Label htmlFor="paymentMethod" className="text-slate-300">Payment Method</Label>
                           <Select
                             value={salaryFormData.paymentMethod}
                             onValueChange={(value) => setSalaryFormData({ ...salaryFormData, paymentMethod: value })}
                           >
-                            <SelectTrigger>
+                            <SelectTrigger className="!bg-slate-700/50 !border-slate-600 text-white focus:border-blue-500 focus:ring-blue-500/20">
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Cash">Cash</SelectItem>
-                              <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
-                              <SelectItem value="Cheque">Cheque</SelectItem>
-                              <SelectItem value="UPI">UPI</SelectItem>
+                            <SelectContent className="bg-slate-800 border-slate-700">
+                              <SelectItem value="Cash" className="text-white hover:bg-slate-700">Cash</SelectItem>
+                              <SelectItem value="Bank Transfer" className="text-white hover:bg-slate-700">Bank Transfer</SelectItem>
+                              <SelectItem value="Cheque" className="text-white hover:bg-slate-700">Cheque</SelectItem>
+                              <SelectItem value="UPI" className="text-white hover:bg-slate-700">UPI</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="notes">Notes</Label>
+                          <Label htmlFor="notes" className="text-slate-300">Notes</Label>
                           <Textarea
                             id="notes"
                             value={salaryFormData.notes}
                             onChange={(e) => setSalaryFormData({ ...salaryFormData, notes: e.target.value })}
                             placeholder="Payment notes or remarks"
                             rows={2}
+                            className="!bg-slate-700/50 !border-slate-600 text-white placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500/20"
                           />
                         </div>
                       </div>
                       <DialogFooter>
-                        <Button type="submit">Add Payment</Button>
+                        <Button 
+                          type="submit"
+                          className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200"
+                        >
+                          Add Payment
+                        </Button>
                       </DialogFooter>
                     </form>
               </DialogContent>
@@ -708,113 +800,169 @@ export default function TeacherManagement() {
             </div>
           </div>
 
-                     {/* Teacher-wise Salary Summary */}
-           <Card>
-             <CardHeader>
-               <CardTitle>Current Month Salary Status</CardTitle>
-               <CardDescription>{new Date().toLocaleString("default", { month: "long" })} {new Date().getFullYear()} salary payment status for all teachers</CardDescription>
-             </CardHeader>
-             <CardContent>
-               <Table>
-                 <TableHeader>
-                   <TableRow>
-                     <TableHead>Teacher</TableHead>
-                     <TableHead>Monthly Salary</TableHead>
-                     <TableHead>Paid Amount</TableHead>
-                     <TableHead>Remaining</TableHead>
-                     <TableHead>Payments</TableHead>
-                     <TableHead>Status</TableHead>
-                   </TableRow>
-                 </TableHeader>
-                 <TableBody>
-                   {teachers.map((teacher) => {
-                     const currentMonth = new Date().toLocaleString("default", { month: "long" })
-                     const currentYear = new Date().getFullYear().toString()
-                     const summary = getTeacherSalarySummary(teacher.id, currentMonth, currentYear)
-                     const isFullyPaid = summary.remaining <= 0
-                     return (
-                       <TableRow key={teacher.id}>
-                         <TableCell className="font-medium">{teacher.name}</TableCell>
-                         <TableCell>Rs. {summary.monthlySalary.toLocaleString()}</TableCell>
-                         <TableCell>Rs. {summary.totalPaid.toLocaleString()}</TableCell>
-                         <TableCell>
-                           <span className={summary.remaining > 0 ? "text-red-600" : "text-green-600"}>
-                             Rs. {Math.max(0, summary.remaining).toLocaleString()}
-                           </span>
-                         </TableCell>
-                         <TableCell>
-                           <Badge variant="outline">{summary.recordCount} payments</Badge>
-                         </TableCell>
-                         <TableCell>
-                           <Badge variant={isFullyPaid ? "default" : "destructive"}>
-                             {isFullyPaid ? "Complete" : "Pending"}
-                           </Badge>
-                         </TableCell>
-                       </TableRow>
-                     )
-                   })}
-                 </TableBody>
-               </Table>
-             </CardContent>
-           </Card>
-
-          {/* Salary Payment History */}
-          <Card>
+          {/* Teacher-wise Salary Summary */}
+          <Card className="border border-slate-700 shadow-lg bg-gradient-to-br from-slate-800 to-slate-900">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <History className="h-5 w-5" />
-                Payment History
+              <CardTitle className="flex items-center gap-2 text-white">
+                <div className="p-2 bg-green-500/20 rounded-lg border border-green-500/30">
+                  <DollarSign className="h-5 w-5 text-green-400" />
+                </div>
+                Current Month Salary Status
               </CardTitle>
-              <CardDescription>All salary payment records</CardDescription>
+              <CardDescription className="text-slate-300">{new Date().toLocaleString("default", { month: "long" })} {new Date().getFullYear()} salary payment status for all teachers</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Teacher</TableHead>
-                    <TableHead>Month/Year</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Payment Date</TableHead>
-                    <TableHead>Method</TableHead>
-                    <TableHead>Notes</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {salaryRecords
-                    .sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())
-                    .map((record) => (
-                      <TableRow key={record.id}>
-                        <TableCell className="font-medium">{record.teacherName}</TableCell>
-                        <TableCell>
-                          {record.month} {record.year}
-                        </TableCell>
-                        <TableCell>Rs. {record.amount.toLocaleString()}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Calendar className="h-4 w-4" />
-                            {record.paymentDate}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{record.paymentMethod}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm text-muted-foreground">{record.notes || "-"}</span>
-                        </TableCell>
-                        <TableCell>
-                          <Button variant="outline" size="sm" onClick={() => handleDeleteSalaryRecord(record.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                </TableBody>
-              </Table>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-slate-700 hover:bg-slate-800/50">
+                      <TableHead className="text-slate-300 font-semibold">Teacher</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Monthly Salary</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Paid Amount</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Remaining</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Payments</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {teachers.map((teacher, index) => {
+                      const currentMonth = new Date().toLocaleString("default", { month: "long" })
+                      const currentYear = new Date().getFullYear().toString()
+                      const summary = getTeacherSalarySummary(teacher.id, currentMonth, currentYear)
+                      const isFullyPaid = summary.remaining <= 0
+                      return (
+                        <TableRow 
+                          key={teacher.id}
+                          className="border-slate-700 hover:bg-slate-800/50 transition-colors duration-200"
+                          style={{ animationDelay: `${index * 50}ms` }}
+                        >
+                          <TableCell className="font-medium text-white">{teacher.name}</TableCell>
+                          <TableCell className="text-white">
+                            <div className="flex items-center gap-2">
+                              <div className="p-1 bg-orange-500/20 rounded border border-orange-500/30">
+                                <span className="text-orange-400 font-bold text-xs">Rs</span>
+                              </div>
+                              <span className="font-medium">Rs. {summary.monthlySalary.toLocaleString()}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-white">
+                            <div className="flex items-center gap-2">
+                              <div className="p-1 bg-green-500/20 rounded border border-green-500/30">
+                                <span className="text-green-400 font-bold text-xs">Rs</span>
+                              </div>
+                              <span className="font-medium">Rs. {summary.totalPaid.toLocaleString()}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className={`${summary.remaining > 0 ? "text-red-400" : "text-green-400"} font-medium`}>
+                              Rs. {Math.max(0, summary.remaining).toLocaleString()}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className="bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 hover:text-blue-300 font-medium transition-colors duration-200">
+                              {summary.recordCount} payments
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge 
+                              className={`${
+                                isFullyPaid 
+                                  ? "bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30 hover:text-green-300" 
+                                  : "bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 hover:text-red-300"
+                              } font-medium transition-colors duration-200`}
+                            >
+                              {isFullyPaid ? "Complete" : "Pending"}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Salary Payment History */}
+          <Card className="border border-slate-700 shadow-lg bg-gradient-to-br from-slate-800 to-slate-900">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-white">
+                <div className="p-2 bg-purple-500/20 rounded-lg border border-purple-500/30">
+                  <History className="h-5 w-5 text-purple-400" />
+                </div>
+                Payment History
+              </CardTitle>
+              <CardDescription className="text-slate-300">All salary payment records</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-slate-700 hover:bg-slate-800/50">
+                      <TableHead className="text-slate-300 font-semibold">Teacher</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Month/Year</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Amount</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Payment Date</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Method</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Notes</TableHead>
+                      <TableHead className="text-slate-300 font-semibold">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {salaryRecords
+                      .sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())
+                      .map((record, index) => (
+                        <TableRow 
+                          key={record.id}
+                          className="border-slate-700 hover:bg-slate-800/50 transition-colors duration-200"
+                          style={{ animationDelay: `${index * 50}ms` }}
+                        >
+                          <TableCell className="font-medium text-white">{record.teacherName}</TableCell>
+                          <TableCell className="text-white">
+                            {record.month} {record.year}
+                          </TableCell>
+                          <TableCell className="text-white">
+                            <div className="flex items-center gap-2">
+                              <div className="p-1 bg-green-500/20 rounded border border-green-500/30">
+                                <span className="text-green-400 font-bold text-xs">Rs</span>
+                              </div>
+                              <span className="font-medium">Rs. {record.amount.toLocaleString()}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1 text-white">
+                              <Calendar className="h-4 w-4 text-blue-400" />
+                              {record.paymentDate}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className="bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 hover:text-blue-300 font-medium transition-colors duration-200">
+                              {record.paymentMethod}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm text-slate-400">{record.notes || "-"}</span>
+                          </TableCell>
+                          <TableCell>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => handleDeleteSalaryRecord(record.id)}
+                              className="bg-red-600/20 border-red-500/50 text-red-400 hover:bg-red-600/30 hover:text-red-300 hover:border-red-400 transition-all duration-200"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </PageProtection>
   )
 }

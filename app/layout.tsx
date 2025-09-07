@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/breadcrumb"
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from "@/contexts/AuthContext"
+import { SettingsProvider } from "@/contexts/SettingsContext"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -34,7 +35,8 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`${inter.className} bg-slate-900 text-white`}>
         <AuthProvider>
-          <SidebarProvider>
+          <SettingsProvider>
+            <SidebarProvider>
             <AppSidebar />
             <SidebarInset className="bg-slate-900">
               <header className="flex h-16 shrink-0 items-center gap-2 border-b border-slate-700 px-4 bg-slate-800">
@@ -54,8 +56,9 @@ export default function RootLayout({
               </header>
               <div className="flex flex-1 flex-col gap-4 p-4 bg-slate-900">{children}</div>
             </SidebarInset>
-          </SidebarProvider>
-          <Toaster />
+            </SidebarProvider>
+            <Toaster />
+          </SettingsProvider>
         </AuthProvider>
       </body>
     </html>

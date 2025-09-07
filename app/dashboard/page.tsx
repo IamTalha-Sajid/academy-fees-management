@@ -7,9 +7,11 @@ import { GraduationCap, Users, AlertCircle, Receipt, BookOpen, FileText, Trendin
 import { dashboardService } from "@/lib/dataService"
 import { useRouter } from "next/navigation"
 import PageProtection from "@/components/PageProtection"
+import { useSettings } from "@/contexts/SettingsContext"
 
 export default function Dashboard() {
   const router = useRouter()
+  const { showFeesAndIncome } = useSettings()
   const [stats, setStats] = useState({
     totalStudents: 0,
     totalBatches: 0,
@@ -72,45 +74,47 @@ export default function Dashboard() {
       iconColor: "text-green-600",
       trendColor: "text-green-600",
     },
-    {
-      title: "Monthly Revenue",
-      value: `Rs. ${stats.totalRevenue.toLocaleString()}`,
-      description: "This month",
-      icon: () => <span className="text-lg font-bold text-purple-600">Rs</span>,
-      trend: "+8%",
-      trendIcon: TrendingUp,
-      gradient: "from-purple-500 to-violet-500",
-      bgGradient: "from-purple-50 to-violet-50",
-      iconBg: "bg-purple-100",
-      iconColor: "text-purple-600",
-      trendColor: "text-green-600",
-    },
-    {
-      title: "Pending Fees",
-      value: `Rs. ${stats.pendingFees.toLocaleString()}`,
-      description: "Outstanding amount",
-      icon: AlertCircle,
-      trend: "-5%",
-      trendIcon: TrendingDown,
-      gradient: "from-red-500 to-rose-500",
-      bgGradient: "from-red-50 to-rose-50",
-      iconBg: "bg-red-100",
-      iconColor: "text-red-600",
-      trendColor: "text-red-600",
-    },
-    {
-      title: "Total Expenses",
-      value: `Rs. ${stats.totalExpenses.toLocaleString()}`,
-      description: "All time expenses",
-      icon: Receipt,
-      trend: "Tracked",
-      trendIcon: Activity,
-      gradient: "from-orange-500 to-amber-500",
-      bgGradient: "from-orange-50 to-amber-50",
-      iconBg: "bg-orange-100",
-      iconColor: "text-orange-600",
-      trendColor: "text-blue-600",
-    },
+    ...(showFeesAndIncome ? [
+      {
+        title: "Monthly Revenue",
+        value: `Rs. ${stats.totalRevenue.toLocaleString()}`,
+        description: "This month",
+        icon: () => <span className="text-lg font-bold text-purple-600">Rs</span>,
+        trend: "+8%",
+        trendIcon: TrendingUp,
+        gradient: "from-purple-500 to-violet-500",
+        bgGradient: "from-purple-50 to-violet-50",
+        iconBg: "bg-purple-100",
+        iconColor: "text-purple-600",
+        trendColor: "text-green-600",
+      },
+      {
+        title: "Pending Fees",
+        value: `Rs. ${stats.pendingFees.toLocaleString()}`,
+        description: "Outstanding amount",
+        icon: AlertCircle,
+        trend: "-5%",
+        trendIcon: TrendingDown,
+        gradient: "from-red-500 to-rose-500",
+        bgGradient: "from-red-50 to-rose-50",
+        iconBg: "bg-red-100",
+        iconColor: "text-red-600",
+        trendColor: "text-red-600",
+      },
+      {
+        title: "Total Expenses",
+        value: `Rs. ${stats.totalExpenses.toLocaleString()}`,
+        description: "All time expenses",
+        icon: Receipt,
+        trend: "Tracked",
+        trendIcon: Activity,
+        gradient: "from-orange-500 to-amber-500",
+        bgGradient: "from-orange-50 to-amber-50",
+        iconBg: "bg-orange-100",
+        iconColor: "text-orange-600",
+        trendColor: "text-blue-600",
+      },
+    ] : []),
   ]
 
   if (loading) {
@@ -200,9 +204,10 @@ export default function Dashboard() {
           ))}
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className={`grid gap-6 ${showFeesAndIncome ? 'md:grid-cols-2' : 'md:grid-cols-1'}`}>
           {/* Enhanced Dark Mode Recent Payments */}
-          <Card className="border border-slate-700 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-slate-800 to-slate-900">
+          {showFeesAndIncome && (
+            <Card className="border border-slate-700 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-slate-800 to-slate-900">
             <CardHeader className="pb-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-green-500/20 rounded-lg border border-green-500/30">
@@ -245,10 +250,12 @@ export default function Dashboard() {
                 )}
               </div>
             </CardContent>
-          </Card>
+            </Card>
+          )}
 
           {/* Enhanced Dark Mode Upcoming Dues */}
-          <Card className="border border-slate-700 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-slate-800 to-slate-900">
+          {showFeesAndIncome && (
+            <Card className="border border-slate-700 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-slate-800 to-slate-900">
             <CardHeader className="pb-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-amber-500/20 rounded-lg border border-amber-500/30">
@@ -287,7 +294,8 @@ export default function Dashboard() {
                 )}
               </div>
             </CardContent>
-          </Card>
+            </Card>
+          )}
         </div>
 
         {/* Enhanced Dark Mode Quick Actions */}
@@ -366,7 +374,13 @@ export default function Dashboard() {
                   iconColor: "text-indigo-400",
                   route: "/reports"
                 }
-              ].map((action, index) => (
+              ].filter(action => {
+                // Hide fees-related actions when fees are hidden
+                if (!showFeesAndIncome) {
+                  return !['Collect Fees', 'Track Expenses', 'View Reports'].includes(action.title)
+                }
+                return true
+              }).map((action, index) => (
                 <div 
                   key={action.title}
                   className={`group relative overflow-hidden rounded-xl p-4 cursor-pointer transition-all duration-300 hover:-translate-y-2 hover:shadow-xl bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600 hover:border-slate-500`}
