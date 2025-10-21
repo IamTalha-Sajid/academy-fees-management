@@ -71,6 +71,30 @@
       "paidDate": null,
       "paymentMethod": null,
       "id": 1752330508616
+    },
+    {
+      "id": "1761036328409h6msejsw9",
+      "studentId": 1752328905781,
+      "studentName": "Talha Sajid",
+      "batch": "Class 9",
+      "amount": 800,
+      "month": "September",
+      "year": "2025",
+      "status": "paid",
+      "paidDate": "2025-09-15",
+      "paymentMethod": "Cash"
+    },
+    {
+      "id": "1761036328409liornid67",
+      "studentId": 1752329607038,
+      "studentName": "Naeem",
+      "batch": "Class 9",
+      "amount": 1400,
+      "month": "September",
+      "year": "2025",
+      "status": "paid",
+      "paidDate": "2025-09-15",
+      "paymentMethod": "Cash"
     }
   ],
   "salaryRecords": [

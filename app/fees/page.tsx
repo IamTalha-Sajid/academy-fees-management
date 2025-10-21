@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CalendarDays, Filter, Download, Plus, AlertTriangle, RefreshCw, FileText, Search, Sparkles, TrendingUp, TrendingDown, ArrowUpRight, Activity } from "lucide-react"
+import { CalendarDays, Filter, Download, Plus, AlertTriangle, RefreshCw, FileText, Search, Sparkles, TrendingUp, TrendingDown, ArrowUpRight, Trash2 } from "lucide-react"
 import { feeRecordService, batchService, studentService, type FeeRecord } from "@/lib/dataService"
 import { useToast } from "@/components/ui/use-toast"
 import PageProtection from "@/components/PageProtection"
@@ -50,76 +50,65 @@ export default function FeeCollection() {
 
   // Load data on component mount
   useEffect(() => {
-    loadFeeRecords()
-    loadBatches()
-    loadStudents()
+    const loadAllData = async () => {
+      await Promise.all([
+        loadFeeRecords(),
+        loadBatches(),
+        loadStudents()
+      ])
+    }
+    loadAllData()
   }, [])
 
-  // Auto-generate fees for current month when component loads
+  // Removed automatic fee generation - fees should only be generated manually via button
+
+  // Removed automatic cleanup to prevent data loss
+  // Cleanup should only be done manually when needed
+  // useEffect(() => {
+  //   cleanupDuplicateFees()
+  // }, [feeRecords.length])
+
+  // Automatically sync batches when fee records change
   useEffect(() => {
-    if (students.length > 0 && feeRecords.length > 0) {
-      // Check if fees exist for current month
-      const currentDate = new Date()
-      const currentMonth = months[currentDate.getMonth()]
-      const currentYear = currentDate.getFullYear().toString()
-      
-      const currentMonthFees = feeRecords.filter(
-        record => record.month === currentMonth && record.year === currentYear
-      )
-      
-      // If no fees exist for current month, generate them
-      if (currentMonthFees.length === 0) {
-        generateFeesForMonth(currentMonth, currentYear)
+    if (feeRecords.length > 0) {
+      const feeRecordBatches = [...new Set(feeRecords.map(record => record.batch))].filter(Boolean)
+      if (feeRecordBatches.length > 0) {
+        setBatches(prevBatches => {
+          // Normalize case and combine batches
+          const normalizedFeeBatches = feeRecordBatches.map(batch => 
+            batch.charAt(0).toUpperCase() + batch.slice(1).toLowerCase()
+          )
+          const normalizedPrevBatches = prevBatches.map(batch => 
+            batch.charAt(0).toUpperCase() + batch.slice(1).toLowerCase()
+          )
+          const combined = [...new Set([...normalizedPrevBatches, ...normalizedFeeBatches])]
+          return combined
+        })
       }
     }
-  }, [students.length, feeRecords.length])
-
-  // Clean up invalid fees when component mounts
-  useEffect(() => {
-    cleanupInvalidFees()
-    cleanupDuplicateFees()
-  }, [feeRecords.length]) // Run when feeRecords changes
+  }, [feeRecords])
 
   const loadFeeRecords = async () => {
     try {
       const allRecords = await feeRecordService.getAll()
       setFeeRecords(allRecords)
+      // Batches will be automatically synced by useEffect
     } catch (error) {
       console.error('Error loading fee records:', error)
     }
   }
 
-  const cleanupInvalidFees = async () => {
-    try {
-      const currentDate = new Date()
-      const currentMonth = months[currentDate.getMonth()]
-      const currentYear = currentDate.getFullYear().toString()
-      
-      // Find and delete fee records that are not for the current month
-      const invalidRecords = feeRecords.filter(record => {
-        return record.month !== currentMonth || record.year !== currentYear
-      })
-      
-      for (const record of invalidRecords) {
-        await feeRecordService.delete(record.id)
-      }
-      
-      if (invalidRecords.length > 0) {
-        await loadFeeRecords() // Reload after cleanup
-        console.log(`Cleaned up ${invalidRecords.length} invalid fee records`)
-        toast({
-          title: "Cleanup Complete",
-          description: `🧹 Cleaned up ${invalidRecords.length} invalid fee records (past/future months)`,
-        })
-      }
-    } catch (error) {
-      console.error('Error cleaning up invalid fees:', error)
-    }
-  }
+  // REMOVED: This function was causing data loss by deleting all non-current month records
+  // const cleanupInvalidFees = async () => {
+  //   // This function was deleting ALL fee records that were not for the current month
+  //   // This is WRONG - we need to keep records for all months!
+  // }
 
   const cleanupDuplicateFees = async () => {
     try {
-      // Group fee records by student, month, and year
+      console.log('Starting duplicate fee cleanup...')
+      
+      // Group fee records by student, month, and year (only duplicates within same month)
       const groupedRecords = feeRecords.reduce((acc, record) => {
         const key = `${record.studentId}-${record.month}-${record.year}`
         if (!acc[key]) {
@@ -130,36 +119,51 @@ export default function FeeCollection() {
       }, {} as Record<string, FeeRecord[]>)
       
       let deletedCount = 0
+      const duplicateGroups = Object.entries(groupedRecords).filter(([_, records]) => records.length > 1)
       
-      // For each group, keep only the first record and delete duplicates
-      for (const [key, records] of Object.entries(groupedRecords)) {
-        if (records.length > 1) {
-          // Sort by creation date (assuming newer records have higher IDs)
-          const sortedRecords = records.sort((a, b) => {
-            // Convert string IDs to numbers for comparison, fallback to 0 if invalid
-            const aId = isNaN(Number(a.id)) ? 0 : Number(a.id)
-            const bId = isNaN(Number(b.id)) ? 0 : Number(b.id)
-            return aId - bId
-          })
-          
-          // Keep the first record, delete the rest
-          for (let i = 1; i < sortedRecords.length; i++) {
-            await feeRecordService.delete(sortedRecords[i].id)
-            deletedCount++
-          }
+      console.log(`Found ${duplicateGroups.length} groups with duplicates`)
+      
+      // For each group with duplicates, keep only the first record and delete the rest
+      for (const [key, records] of duplicateGroups) {
+        console.log(`Processing duplicate group: ${key} (${records.length} records)`)
+        
+        // Sort by creation date (assuming newer records have higher IDs)
+        const sortedRecords = records.sort((a, b) => {
+          // Convert string IDs to numbers for comparison, fallback to 0 if invalid
+          const aId = isNaN(Number(a.id)) ? 0 : Number(a.id)
+          const bId = isNaN(Number(b.id)) ? 0 : Number(b.id)
+          return aId - bId
+        })
+        
+        // Keep the first record, delete the rest
+        for (let i = 1; i < sortedRecords.length; i++) {
+          console.log(`Deleting duplicate record: ${sortedRecords[i].id} for student ${sortedRecords[i].studentName}`)
+          await feeRecordService.delete(sortedRecords[i].id)
+          deletedCount++
         }
       }
       
       if (deletedCount > 0) {
         await loadFeeRecords() // Reload after cleanup
-        console.log(`Cleaned up ${deletedCount} duplicate fee records`)
+        console.log(`✅ Cleaned up ${deletedCount} duplicate fee records`)
         toast({
           title: "Duplicate Cleanup Complete",
-          description: `🧹 Cleaned up ${deletedCount} duplicate fee records`,
+          description: `🧹 Cleaned up ${deletedCount} duplicate fee records within same month`,
+        })
+      } else {
+        console.log('No duplicate fee records found')
+        toast({
+          title: "No Duplicates Found",
+          description: "All fee records are unique within their respective months",
         })
       }
     } catch (error) {
       console.error('Error cleaning up duplicate fees:', error)
+      toast({
+        title: "Cleanup Error",
+        description: "Failed to clean up duplicate fees. Please try again.",
+        variant: "destructive"
+      })
     }
   }
 
@@ -388,9 +392,32 @@ Generated on: ${new Date().toLocaleDateString()}
     try {
       const allBatches = await batchService.getAll()
       const batchNames = allBatches.map(batch => batch.name)
-      setBatches(batchNames)
+      
+      // Also get unique batches from fee records to ensure we have all possible batches
+      const feeRecordBatches = [...new Set(feeRecords.map(record => record.batch))].filter(Boolean)
+      
+      // Normalize case for all batch names
+      const normalizedBatchNames = batchNames.map(batch => 
+        batch.charAt(0).toUpperCase() + batch.slice(1).toLowerCase()
+      )
+      const normalizedFeeBatches = feeRecordBatches.map(batch => 
+        batch.charAt(0).toUpperCase() + batch.slice(1).toLowerCase()
+      )
+      
+      // Combine both sources and remove duplicates
+      const allBatchNames = [...new Set([...normalizedBatchNames, ...normalizedFeeBatches])]
+      
+      setBatches(allBatchNames)
     } catch (error) {
-      console.error('Error loading batches:', error)
+      console.error('Error loading batches from service:', error)
+      // Fallback: get unique batches from fee records
+      try {
+        const uniqueBatches = [...new Set(feeRecords.map(record => record.batch))].filter(Boolean)
+        setBatches(uniqueBatches)
+      } catch (fallbackError) {
+        console.error('Fallback also failed:', fallbackError)
+        setBatches([])
+      }
     }
   }
 
@@ -422,10 +449,14 @@ Generated on: ${new Date().toLocaleDateString()}
       (selectedStatus === "pending" && record.status === "pending") ||
       (selectedStatus === "overdue" && isOverdue(record))
     
+    // Case-insensitive batch matching
+    const batchMatch = selectedBatch === "All Batches" || 
+      record.batch.toLowerCase() === selectedBatch.toLowerCase()
+    
     return (
       matchesSearch &&
       matchesStatus &&
-      (selectedBatch === "All Batches" || record.batch === selectedBatch) &&
+      batchMatch &&
       (selectedMonth === "All Months" || record.month === selectedMonth) &&
       (selectedYear === "All Years" || record.year === selectedYear)
     )
@@ -455,20 +486,8 @@ Generated on: ${new Date().toLocaleDateString()}
 
   const generateFeesForMonth = async (month: string, year: string) => {
     try {
-      // Check if the selected month is the current month
-      const currentDate = new Date()
-      const currentMonth = months[currentDate.getMonth()]
-      const currentYear = currentDate.getFullYear().toString()
-      
-      // Only allow fee generation for the current month
-      if (month !== currentMonth || year !== currentYear) {
-        toast({
-          title: "Invalid Month",
-          description: `❌ Fees can only be generated for the current month (${currentMonth} ${currentYear}).\n\nPlease select ${currentMonth} ${currentYear} to generate fees.`,
-          variant: "destructive",
-        })
-        return
-      }
+      // Allow fee generation for any month (current or past)
+      // Duplication protection is handled by checking existing records
       
       // Generate fee records for all active students for the specific month
       for (const student of students) {
@@ -527,20 +546,8 @@ Generated on: ${new Date().toLocaleDateString()}
 
   const regenerateFeesForMonth = async (month: string, year: string) => {
     try {
-      // Check if the selected month is the current month
-      const currentDate = new Date()
-      const currentMonth = months[currentDate.getMonth()]
-      const currentYear = currentDate.getFullYear().toString()
-      
-      // Only allow fee regeneration for the current month
-      if (month !== currentMonth || year !== currentYear) {
-        toast({
-          title: "Invalid Month",
-          description: `❌ Fees can only be regenerated for the current month (${currentMonth} ${currentYear}).\n\nPlease select ${currentMonth} ${currentYear} to regenerate fees.`,
-          variant: "destructive",
-        })
-        return
-      }
+      // Allow fee regeneration for any month (current or past)
+      // Duplication protection is handled by checking existing records
       
       let generatedCount = 0
       let skippedCount = 0
@@ -611,22 +618,14 @@ Generated on: ${new Date().toLocaleDateString()}
     }
   }
 
-  const handleMonthChange = async (month: string) => {
+  const handleMonthChange = (month: string) => {
     setSelectedMonth(month)
-    
-    // If a specific month is selected, generate fees for that month
-    if (month !== "All Months") {
-      await generateFeesForMonth(month, selectedYear)
-    }
+    // No automatic fee generation - only when button is clicked
   }
 
-  const handleYearChange = async (year: string) => {
+  const handleYearChange = (year: string) => {
     setSelectedYear(year)
-    
-    // If a specific month is selected, generate fees for that month
-    if (selectedMonth !== "All Months") {
-      await generateFeesForMonth(selectedMonth, year)
-    }
+    // No automatic fee generation - only when button is clicked
   }
 
   const totalAmount = filteredRecords.reduce((sum, record) => sum + record.amount, 0)
@@ -706,14 +705,22 @@ Generated on: ${new Date().toLocaleDateString()}
                   <Button 
                     variant="outline" 
                     onClick={() => regenerateFeesForMonth(selectedMonth, selectedYear)}
-                    disabled={!isCurrentMonth}
-                    title={!isCurrentMonth ? `Fees can only be generated for the current month (${currentMonth} ${currentYear})` : "Generate fees for students who don't have fees for this month"}
-                    className="bg-gradient-to-r from-green-600 to-emerald-600 border-green-500 text-white hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                    title="Generate fees for students who don't have fees for this month"
+                    className="bg-gradient-to-r from-green-600 to-emerald-600 border-green-500 text-white hover:from-green-700 hover:to-emerald-700 transition-all duration-200"
                   >
                     <RefreshCw className="mr-2 h-4 w-4" />
                     Generate Missing Fees
                   </Button>
                 )}
+                <Button 
+                  variant="outline" 
+                  onClick={cleanupDuplicateFees}
+                  title="Remove duplicate fee records within the same month"
+                  className="bg-gradient-to-r from-orange-600 to-red-600 border-orange-500 text-white hover:from-orange-700 hover:to-red-700 transition-all duration-200"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Clean Duplicates
+                </Button>
               </div>
             </div>
           </div>
@@ -816,7 +823,7 @@ Generated on: ${new Date().toLocaleDateString()}
             )}
           </div>
           <div className="flex items-center gap-2 text-sm text-slate-300">
-            <Activity className="h-4 w-4 text-blue-400" />
+            <Search className="h-4 w-4 text-blue-400" />
             {filteredRecords.length} records found
           </div>
         </div>
@@ -841,11 +848,17 @@ Generated on: ${new Date().toLocaleDateString()}
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-600">
                     <SelectItem value="All Batches" className="text-white hover:bg-slate-700">All Batches</SelectItem>
-                    {batches.map((batch) => (
-                      <SelectItem key={batch} value={batch} className="text-white hover:bg-slate-700">
-                        {batch}
+                    {batches.length > 0 ? (
+                      batches.map((batch) => (
+                        <SelectItem key={batch} value={batch} className="text-white hover:bg-slate-700">
+                          {batch}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="No batches" disabled className="text-slate-500">
+                        No batches available
                       </SelectItem>
-                    ))}
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -867,12 +880,6 @@ Generated on: ${new Date().toLocaleDateString()}
                     })}
                   </SelectContent>
                 </Select>
-                {selectedMonth !== "All Months" && !isCurrentMonth && (
-                  <p className="text-xs text-red-400 flex items-center gap-1">
-                    <AlertTriangle className="h-3 w-3" />
-                    Fees can only be generated for {currentMonth} {currentYear}
-                  </p>
-                )}
               </div>
               <div className="space-y-2">
                 <Label className="text-slate-300 font-medium">Year</Label>
@@ -922,7 +929,7 @@ Generated on: ${new Date().toLocaleDateString()}
             </CardTitle>
             <CardDescription className="text-slate-300">
               {feeRecords.length === 0 
-                ? `Select the current month (${currentMonth} ${currentYear}) to generate fee records. Fees can only be generated for the current month.`
+                ? `Select a month and year to generate fee records. Use 'Generate Missing Fees' to add fees for students who don't have fees for the selected month.`
                 : `Manage and track fee payments (overdue amounts are accumulated). Use 'Generate Missing Fees' to add fees for new students. Showing ${filteredRecords.length} records for ${selectedBatch} | ${selectedMonth} | ${selectedYear} | ${selectedStatus}${searchTerm ? ` | Search: "${searchTerm}"` : ''}.`
               }
             </CardDescription>
