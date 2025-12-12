@@ -72,7 +72,8 @@ FeeRecordSchema.index({ status: 1 })
 FeeRecordSchema.index({ paidDate: 1 })
 
 // Compound indexes for common queries
-FeeRecordSchema.index({ studentId: 1, month: 1, year: 1 })
+// Unique compound index to prevent duplicate fee records for the same student, month, and year
+FeeRecordSchema.index({ studentId: 1, month: 1, year: 1 }, { unique: true })
 FeeRecordSchema.index({ batch: 1, month: 1, year: 1 })
 
 export default mongoose.models.FeeRecord || mongoose.model<IFeeRecord>('FeeRecord', FeeRecordSchema)

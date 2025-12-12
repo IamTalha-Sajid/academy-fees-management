@@ -111,13 +111,18 @@ async function updateData(action: string, data?: any, id?: string): Promise<bool
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`)
+      const error = new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`)
+      // Preserve duplicate flag for proper error handling
+      if (errorData.duplicate || response.status === 409) {
+        (error as any).isDuplicate = true
+      }
+      throw error
     }
     
     return true
   } catch (error) {
-    console.error('Error updating data:', error)
-    return false
+    // Re-throw errors so they can be handled by the caller
+    throw error
   }
 }
 
@@ -246,11 +251,21 @@ export const feeRecordService = {
   },
 
   create: async (record: Omit<FeeRecord, 'id'>): Promise<FeeRecord> => {
-    const success = await updateData('createFeeRecord', record)
-    if (!success) {
-      throw new Error('Failed to create fee record')
+    try {
+      const success = await updateData('createFeeRecord', record)
+      if (!success) {
+        throw new Error('Failed to create fee record')
+      }
+      return { ...record, id: Date.now().toString() }
+    } catch (error: any) {
+      // Re-throw with duplicate flag preserved
+      if (error.isDuplicate) {
+        const duplicateError = new Error('Fee record already exists for this student, month, and year')
+        ;(duplicateError as any).isDuplicate = true
+        throw duplicateError
+      }
+      throw error
     }
-    return { ...record, id: Date.now().toString() }
   },
 
   update: async (id: string, updates: Partial<FeeRecord>): Promise<FeeRecord | null> => {

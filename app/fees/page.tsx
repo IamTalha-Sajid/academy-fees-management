@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CalendarDays, Filter, Download, Plus, AlertTriangle, RefreshCw, FileText, Search, Sparkles, TrendingUp, TrendingDown, ArrowUpRight, Trash2 } from "lucide-react"
+import { CalendarDays, Filter, Download, Plus, AlertTriangle, RefreshCw, FileText, Search, Sparkles, TrendingUp, TrendingDown, ArrowUpRight, Trash2, Loader2 } from "lucide-react"
 import { feeRecordService, batchService, studentService, type FeeRecord } from "@/lib/dataService"
 import { useToast } from "@/components/ui/use-toast"
 import PageProtection from "@/components/PageProtection"
@@ -47,6 +47,13 @@ export default function FeeCollection() {
   const [students, setStudents] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedStatus, setSelectedStatus] = useState("All Status")
+  const [isGeneratingFees, setIsGeneratingFees] = useState(false)
+  const [isRegeneratingFees, setIsRegeneratingFees] = useState(false)
+  const [isCleaningDuplicates, setIsCleaningDuplicates] = useState(false)
+  const [isCleaningOrphans, setIsCleaningOrphans] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+  const [isCopying, setIsCopying] = useState(false)
+  const [loadingRecords, setLoadingRecords] = useState<Set<string>>(new Set())
 
   // Load data on component mount
   useEffect(() => {
@@ -105,6 +112,9 @@ export default function FeeCollection() {
   // }
 
   const cleanupDuplicateFees = async () => {
+    if (isCleaningDuplicates) return // Prevent multiple simultaneous calls
+    
+    setIsCleaningDuplicates(true)
     try {
       console.log('Starting duplicate fee cleanup...')
       
@@ -164,6 +174,56 @@ export default function FeeCollection() {
         description: "Failed to clean up duplicate fees. Please try again.",
         variant: "destructive"
       })
+    } finally {
+      setIsCleaningDuplicates(false)
+    }
+  }
+
+  const cleanupOrphanedFeeRecords = async () => {
+    if (isCleaningOrphans) return // Prevent multiple simultaneous calls
+    
+    setIsCleaningOrphans(true)
+    try {
+      // Get all students and fee records
+      const allStudents = await studentService.getAll()
+      const allFeeRecords = await feeRecordService.getAll()
+      
+      // Create a set of valid student IDs
+      const validStudentIds = new Set(allStudents.map(s => s.id))
+      
+      // Find orphaned fee records (fee records with studentId that doesn't exist)
+      const orphanedRecords = allFeeRecords.filter(record => !validStudentIds.has(record.studentId))
+      
+      if (orphanedRecords.length === 0) {
+        toast({
+          title: "No Orphaned Records",
+          description: "All fee records are valid. No cleanup needed.",
+        })
+        return
+      }
+      
+      // Delete orphaned records
+      let deletedCount = 0
+      for (const record of orphanedRecords) {
+        await feeRecordService.delete(record.id)
+        deletedCount++
+      }
+      
+      await loadFeeRecords() // Reload after cleanup
+      
+      toast({
+        title: "Orphaned Records Cleaned",
+        description: `🧹 Deleted ${deletedCount} orphaned fee record(s) with non-existent students`,
+      })
+    } catch (error) {
+      console.error('Error cleaning up orphaned fee records:', error)
+      toast({
+        title: "Cleanup Error",
+        description: "Failed to clean up orphaned records. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsCleaningOrphans(false)
     }
   }
 
@@ -221,9 +281,9 @@ export default function FeeCollection() {
   const generateDetailedReport = () => {
     try {
       const currentDate = new Date().toLocaleDateString()
-      const totalStudents = filteredRecords.length
-      const paidStudents = filteredRecords.filter(r => r.status === 'paid').length
-      const pendingStudents = filteredRecords.filter(r => r.status !== 'paid').length
+      const totalStudents = new Set(filteredRecords.map(r => r.studentId)).size
+      const paidStudents = new Set(filteredRecords.filter(r => r.status === 'paid').map(r => r.studentId)).size
+      const pendingStudents = new Set(filteredRecords.filter(r => r.status !== 'paid').map(r => r.studentId)).size
       const totalAmount = filteredRecords.reduce((sum, record) => sum + record.amount, 0)
       const paidAmount = filteredRecords.filter(r => r.status === 'paid').reduce((sum, record) => sum + record.amount, 0)
       const pendingAmount = totalAmount - paidAmount
@@ -318,7 +378,9 @@ ${index + 1}. ${record.studentName} (${record.batch})
     }
   }
 
-  const handleExportReport = () => {
+  const handleExportReport = async () => {
+    if (isExporting) return // Prevent multiple simultaneous calls
+    
     if (filteredRecords.length === 0) {
       toast({
         title: "No Data",
@@ -328,21 +390,29 @@ ${index + 1}. ${record.studentName} (${record.batch})
       return
     }
     
-    // Show options to user
-    const choice = confirm(
-      'Choose report format:\n\n' +
-      'OK = CSV Report (Excel compatible)\n' +
-      'Cancel = Detailed Text Report'
-    )
-    
-    if (choice) {
-      generateCSVReport()
-    } else {
-      generateDetailedReport()
+    setIsExporting(true)
+    try {
+      // Show options to user
+      const choice = confirm(
+        'Choose report format:\n\n' +
+        'OK = CSV Report (Excel compatible)\n' +
+        'Cancel = Detailed Text Report'
+      )
+      
+      if (choice) {
+        generateCSVReport()
+      } else {
+        generateDetailedReport()
+      }
+    } finally {
+      // Small delay to allow file download to start
+      setTimeout(() => setIsExporting(false), 500)
     }
   }
 
-  const copySummaryToClipboard = () => {
+  const copySummaryToClipboard = async () => {
+    if (isCopying) return // Prevent multiple simultaneous calls
+    
     if (filteredRecords.length === 0) {
       toast({
         title: "No Data",
@@ -352,7 +422,9 @@ ${index + 1}. ${record.studentName} (${record.batch})
       return
     }
 
-    const totalStudents = filteredRecords.length
+    setIsCopying(true)
+    try {
+      const totalStudents = filteredRecords.length
     const paidStudents = filteredRecords.filter(r => r.status === 'paid').length
     const totalAmount = filteredRecords.reduce((sum, record) => sum + record.amount, 0)
     const paidAmount = filteredRecords.filter(r => r.status === 'paid').reduce((sum, record) => sum + record.amount, 0)
@@ -374,18 +446,20 @@ Filter: ${selectedBatch} | ${selectedMonth} | ${selectedYear}
 Generated on: ${new Date().toLocaleDateString()}
     `.trim()
 
-    navigator.clipboard.writeText(summary).then(() => {
+      await navigator.clipboard.writeText(summary)
       toast({
         title: "Success",
         description: "✅ Summary copied to clipboard!",
       })
-    }).catch(() => {
+    } catch (error) {
       toast({
         title: "Error",
         description: "❌ Failed to copy to clipboard",
         variant: "destructive",
       })
-    })
+    } finally {
+      setIsCopying(false)
+    }
   }
 
   const loadBatches = async () => {
@@ -463,36 +537,78 @@ Generated on: ${new Date().toLocaleDateString()}
   })
 
   const handleMarkPaid = async (id: string, paymentMethod: string = "Cash") => {
+    if (loadingRecords.has(id)) return // Prevent duplicate clicks
+    
+    setLoadingRecords(prev => new Set(prev).add(id))
     try {
       const updatedRecord = await feeRecordService.markAsPaid(id, paymentMethod)
       if (updatedRecord) {
         await loadFeeRecords() // Reload the list
+        toast({
+          title: "Success",
+          description: "Fee marked as paid successfully",
+        })
       }
     } catch (error) {
       console.error('Error marking as paid:', error)
+      toast({
+        title: "Error",
+        description: "Failed to mark fee as paid",
+        variant: "destructive",
+      })
+    } finally {
+      setLoadingRecords(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(id)
+        return newSet
+      })
     }
   }
 
   const handleMarkUnpaid = async (id: string) => {
+    if (loadingRecords.has(id)) return // Prevent duplicate clicks
+    
+    setLoadingRecords(prev => new Set(prev).add(id))
     try {
       const updatedRecord = await feeRecordService.markAsPending(id)
       if (updatedRecord) {
         await loadFeeRecords() // Reload the list
+        toast({
+          title: "Success",
+          description: "Fee marked as pending successfully",
+        })
       }
     } catch (error) {
       console.error('Error marking as unpaid:', error)
+      toast({
+        title: "Error",
+        description: "Failed to mark fee as pending",
+        variant: "destructive",
+      })
+    } finally {
+      setLoadingRecords(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(id)
+        return newSet
+      })
     }
   }
 
   const generateFeesForMonth = async (month: string, year: string) => {
+    if (isGeneratingFees) return // Prevent multiple simultaneous calls
+    
+    setIsGeneratingFees(true)
     try {
       // Allow fee generation for any month (current or past)
-      // Duplication protection is handled by checking existing records
+      // Duplication protection: client-side check + server-side validation + database unique constraint
+      
+      let createdCount = 0
+      let skippedCount = 0
       
       // Generate fee records for all active students for the specific month
       for (const student of students) {
         if (student.status === 'active') {
-          // Check if fee record already exists for this student and month
+          // Check if fee record already exists for this student and month (client-side check)
           const existingRecord = feeRecords.find(
             record => record.studentId === student.id && 
                      record.month === month && 
@@ -500,40 +616,63 @@ Generated on: ${new Date().toLocaleDateString()}
           )
           
           if (!existingRecord) {
-            // Calculate accumulated amount for overdue fees
-            let accumulatedAmount = student.fees
-            const targetDate = new Date(`${year}-${months.indexOf(month) + 1}-01`)
-            
-            // Only consider UNPAID records from previous months as overdue
-            const overdueRecords = feeRecords.filter(
-              record => record.studentId === student.id && 
-                       record.status !== 'paid' &&
-                       new Date(`${record.year}-${months.indexOf(record.month) + 1}-01`) < targetDate
-            )
-            
-            // Add overdue amounts (double the fee for each overdue month)
-            accumulatedAmount += overdueRecords.length * student.fees
-            
-            await feeRecordService.create({
-              studentId: student.id,
-              studentName: student.name,
-              batch: student.batch,
-              amount: accumulatedAmount,
-              month: month,
-              year: year,
-              status: 'pending',
-              paidDate: null,
-              paymentMethod: null
-            })
+            try {
+              // Calculate accumulated amount for overdue fees
+              let accumulatedAmount = student.fees
+              const targetDate = new Date(`${year}-${months.indexOf(month) + 1}-01`)
+              
+              // Only consider UNPAID records from previous months as overdue
+              const overdueRecords = feeRecords.filter(
+                record => record.studentId === student.id && 
+                         record.status !== 'paid' &&
+                         new Date(`${record.year}-${months.indexOf(record.month) + 1}-01`) < targetDate
+              )
+              
+              // Add overdue amounts (double the fee for each overdue month)
+              accumulatedAmount += overdueRecords.length * student.fees
+              
+              await feeRecordService.create({
+                studentId: student.id,
+                studentName: student.name,
+                batch: student.batch,
+                amount: accumulatedAmount,
+                month: month,
+                year: year,
+                status: 'pending',
+                paidDate: null,
+                paymentMethod: null
+              })
+              createdCount++
+            } catch (error: any) {
+              // Handle duplicate errors gracefully (server-side or database constraint)
+              if (error?.isDuplicate || error?.message?.includes('duplicate') || error?.message?.includes('already exists')) {
+                skippedCount++
+                // Silently skip duplicates - they're already handled
+              } else {
+                // Re-throw other errors
+                throw error
+              }
+            }
+          } else {
+            skippedCount++
           }
         }
       }
       
       await loadFeeRecords() // Reload the list
-      toast({
-        title: "Success",
-        description: `✅ Fees generated successfully for ${month} ${year}!`,
-      })
+      
+      // Show appropriate message based on results
+      if (createdCount > 0) {
+        toast({
+          title: "Success",
+          description: `✅ Generated ${createdCount} fee record(s) for ${month} ${year}${skippedCount > 0 ? ` (${skippedCount} already existed)` : ''}`,
+        })
+      } else if (skippedCount > 0) {
+        toast({
+          title: "Info",
+          description: `ℹ️ All fees for ${month} ${year} already exist. No new records created.`,
+        })
+      }
     } catch (error) {
       console.error('Error generating fees for month:', error)
       toast({
@@ -541,10 +680,15 @@ Generated on: ${new Date().toLocaleDateString()}
         description: `❌ Error generating fees: ${error}`,
         variant: "destructive",
       })
+    } finally {
+      setIsGeneratingFees(false)
     }
   }
 
   const regenerateFeesForMonth = async (month: string, year: string) => {
+    if (isRegeneratingFees) return // Prevent multiple simultaneous calls
+    
+    setIsRegeneratingFees(true)
     try {
       // Allow fee regeneration for any month (current or past)
       // Duplication protection is handled by checking existing records
@@ -688,38 +832,72 @@ Generated on: ${new Date().toLocaleDateString()}
                 <Button 
                   variant="outline" 
                   onClick={handleExportReport}
-                  className="bg-slate-800/50 border-slate-600 text-white hover:bg-slate-700 hover:border-slate-500 transition-all duration-200"
+                  disabled={isExporting || isGeneratingFees || isRegeneratingFees}
+                  className="bg-slate-800/50 border-slate-600 text-white hover:bg-slate-700 hover:border-slate-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Download className="mr-2 h-4 w-4" />
-                  Export Report
+                  {isExporting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="mr-2 h-4 w-4" />
+                  )}
+                  {isExporting ? "Exporting..." : "Export Report"}
                 </Button>
                 <Button 
                   variant="outline" 
                   onClick={copySummaryToClipboard}
-                  className="bg-slate-800/50 border-slate-600 text-white hover:bg-slate-700 hover:border-slate-500 transition-all duration-200"
+                  disabled={isCopying || isGeneratingFees || isRegeneratingFees}
+                  className="bg-slate-800/50 border-slate-600 text-white hover:bg-slate-700 hover:border-slate-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <FileText className="mr-2 h-4 w-4" />
-                  Copy Summary
+                  {isCopying ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileText className="mr-2 h-4 w-4" />
+                  )}
+                  {isCopying ? "Copying..." : "Copy Summary"}
                 </Button>
                 {selectedMonth !== "All Months" && (
                   <Button 
                     variant="outline" 
                     onClick={() => regenerateFeesForMonth(selectedMonth, selectedYear)}
+                    disabled={isRegeneratingFees || isGeneratingFees || isCleaningDuplicates || isCleaningOrphans}
                     title="Generate fees for students who don't have fees for this month"
-                    className="bg-gradient-to-r from-green-600 to-emerald-600 border-green-500 text-white hover:from-green-700 hover:to-emerald-700 transition-all duration-200"
+                    className="bg-gradient-to-r from-green-600 to-emerald-600 border-green-500 text-white hover:from-green-700 hover:to-emerald-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Generate Missing Fees
+                    {isRegeneratingFees ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                    )}
+                    {isRegeneratingFees ? "Generating..." : "Generate Missing Fees"}
                   </Button>
                 )}
                 <Button 
                   variant="outline" 
                   onClick={cleanupDuplicateFees}
+                  disabled={isCleaningDuplicates || isGeneratingFees || isRegeneratingFees || isCleaningOrphans}
                   title="Remove duplicate fee records within the same month"
-                  className="bg-gradient-to-r from-orange-600 to-red-600 border-orange-500 text-white hover:from-orange-700 hover:to-red-700 transition-all duration-200"
+                  className="bg-gradient-to-r from-orange-600 to-red-600 border-orange-500 text-white hover:from-orange-700 hover:to-red-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Clean Duplicates
+                  {isCleaningDuplicates ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="mr-2 h-4 w-4" />
+                  )}
+                  {isCleaningDuplicates ? "Cleaning..." : "Clean Duplicates"}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={cleanupOrphanedFeeRecords}
+                  disabled={isCleaningOrphans || isGeneratingFees || isRegeneratingFees || isCleaningDuplicates}
+                  title="Remove fee records for deleted students"
+                  className="bg-gradient-to-r from-red-600 to-rose-600 border-red-500 text-white hover:from-red-700 hover:to-rose-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isCleaningOrphans ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <AlertTriangle className="mr-2 h-4 w-4" />
+                  )}
+                  {isCleaningOrphans ? "Cleaning..." : "Clean Orphans"}
                 </Button>
               </div>
             </div>
@@ -732,7 +910,7 @@ Generated on: ${new Date().toLocaleDateString()}
             {
               title: "Total Amount",
               value: `Rs. ${totalAmount.toLocaleString()}`,
-              description: `${filteredRecords.length} students`,
+              description: `${new Set(filteredRecords.map(r => r.studentId)).size} unique students`,
               icon: () => <span className="text-lg font-bold text-blue-400">Rs</span>,
               gradient: "from-blue-500 to-cyan-500",
               bgGradient: "from-blue-50 to-cyan-50",
@@ -1036,18 +1214,34 @@ Generated on: ${new Date().toLocaleDateString()}
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleMarkPaid(record.id)}
-                                className="bg-green-600/20 border-green-500/50 text-green-400 hover:bg-green-600/30 hover:text-green-300 hover:border-green-400 transition-all duration-200"
+                                disabled={loadingRecords.has(record.id) || isGeneratingFees || isRegeneratingFees}
+                                className="bg-green-600/20 border-green-500/50 text-green-400 hover:bg-green-600/30 hover:text-green-300 hover:border-green-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                               >
-                                Mark Paid
+                                {loadingRecords.has(record.id) ? (
+                                  <>
+                                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                    Processing...
+                                  </>
+                                ) : (
+                                  "Mark Paid"
+                                )}
                               </Button>
                             ) : (
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleMarkUnpaid(record.id)}
-                                className="bg-slate-600/20 border-slate-500/50 text-slate-400 hover:bg-slate-600/30 hover:text-slate-300 hover:border-slate-400 transition-all duration-200"
+                                disabled={loadingRecords.has(record.id) || isGeneratingFees || isRegeneratingFees}
+                                className="bg-slate-600/20 border-slate-500/50 text-slate-400 hover:bg-slate-600/30 hover:text-slate-300 hover:border-slate-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                               >
-                                Mark Unpaid
+                                {loadingRecords.has(record.id) ? (
+                                  <>
+                                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                    Processing...
+                                  </>
+                                ) : (
+                                  "Mark Unpaid"
+                                )}
                               </Button>
                             )}
                           </div>
