@@ -28,7 +28,14 @@ import { useSettings } from "@/contexts/SettingsContext"
     "November",
     "December",
   ]
-const years = ["2024", "2025", "2023"]
+// Dynamic years: current year and a range so new months always have a valid year
+const getYears = () => {
+  const current = new Date().getFullYear()
+  const years: string[] = []
+  for (let y = current - 2; y <= current + 1; y++) years.push(String(y))
+  return years
+}
+const years = getYears()
 
 export default function FeeCollection() {
   const { toast } = useToast()
@@ -596,41 +603,40 @@ Generated on: ${new Date().toLocaleDateString()}
 
   const generateFeesForMonth = async (month: string, year: string) => {
     if (isGeneratingFees) return // Prevent multiple simultaneous calls
-    
+    if (year === "All Years" || month === "All Months") return
+
     setIsGeneratingFees(true)
     try {
-      // Allow fee generation for any month (current or past)
-      // Duplication protection: client-side check + server-side validation + database unique constraint
-      
+      // Use latest data so month change doesn't use stale students/feeRecords
+      const [latestStudents, latestFeeRecords] = await Promise.all([
+        studentService.getAll(),
+        feeRecordService.getAll()
+      ])
+      setStudents(latestStudents)
+      setFeeRecords(latestFeeRecords)
+
       let createdCount = 0
       let skippedCount = 0
-      
-      // Generate fee records for all active students for the specific month
-      for (const student of students) {
+
+      for (const student of latestStudents) {
         if (student.status === 'active') {
-          // Check if fee record already exists for this student and month (client-side check)
-          const existingRecord = feeRecords.find(
-            record => record.studentId === student.id && 
-                     record.month === month && 
+          const existingRecord = latestFeeRecords.find(
+            record => record.studentId === student.id &&
+                     record.month === month &&
                      record.year === year
           )
-          
+
           if (!existingRecord) {
             try {
-              // Calculate accumulated amount for overdue fees
               let accumulatedAmount = student.fees
               const targetDate = new Date(`${year}-${months.indexOf(month) + 1}-01`)
-              
-              // Only consider UNPAID records from previous months as overdue
-              const overdueRecords = feeRecords.filter(
-                record => record.studentId === student.id && 
+              const overdueRecords = latestFeeRecords.filter(
+                record => record.studentId === student.id &&
                          record.status !== 'paid' &&
                          new Date(`${record.year}-${months.indexOf(record.month) + 1}-01`) < targetDate
               )
-              
-              // Add overdue amounts (double the fee for each overdue month)
               accumulatedAmount += overdueRecords.length * student.fees
-              
+
               await feeRecordService.create({
                 studentId: student.id,
                 studentName: student.name,
@@ -644,12 +650,9 @@ Generated on: ${new Date().toLocaleDateString()}
               })
               createdCount++
             } catch (error: any) {
-              // Handle duplicate errors gracefully (server-side or database constraint)
               if (error?.isDuplicate || error?.message?.includes('duplicate') || error?.message?.includes('already exists')) {
                 skippedCount++
-                // Silently skip duplicates - they're already handled
               } else {
-                // Re-throw other errors
                 throw error
               }
             }
@@ -658,10 +661,9 @@ Generated on: ${new Date().toLocaleDateString()}
           }
         }
       }
-      
-      await loadFeeRecords() // Reload the list
-      
-      // Show appropriate message based on results
+
+      await loadFeeRecords()
+
       if (createdCount > 0) {
         toast({
           title: "Success",
@@ -687,60 +689,67 @@ Generated on: ${new Date().toLocaleDateString()}
 
   const regenerateFeesForMonth = async (month: string, year: string) => {
     if (isRegeneratingFees) return // Prevent multiple simultaneous calls
-    
+    if (year === "All Years" || month === "All Months") return
+
     setIsRegeneratingFees(true)
     try {
-      // Allow fee regeneration for any month (current or past)
-      // Duplication protection is handled by checking existing records
-      
+      // Use latest data to avoid stale students/feeRecords when month changed
+      const [latestStudents, latestFeeRecords] = await Promise.all([
+        studentService.getAll(),
+        feeRecordService.getAll()
+      ])
+      setStudents(latestStudents)
+      setFeeRecords(latestFeeRecords)
+
       let generatedCount = 0
       let skippedCount = 0
-      
-      // Generate fee records for all active students for the specific month
-      for (const student of students) {
+
+      for (const student of latestStudents) {
         if (student.status === 'active') {
-          // Check if fee record already exists for this student and month
-          const existingRecord = feeRecords.find(
-            record => record.studentId === student.id && 
-                     record.month === month && 
+          const existingRecord = latestFeeRecords.find(
+            record => record.studentId === student.id &&
+                     record.month === month &&
                      record.year === year
           )
-          
+
           if (!existingRecord) {
-            // Calculate accumulated amount for overdue fees
-            let accumulatedAmount = student.fees
-            const targetDate = new Date(`${year}-${months.indexOf(month) + 1}-01`)
-            
-            // Only consider UNPAID records from previous months as overdue
-            const overdueRecords = feeRecords.filter(
-              record => record.studentId === student.id && 
-                       record.status !== 'paid' &&
-                       new Date(`${record.year}-${months.indexOf(record.month) + 1}-01`) < targetDate
-            )
-            
-            // Add overdue amounts (double the fee for each overdue month)
-            accumulatedAmount += overdueRecords.length * student.fees
-            
-            await feeRecordService.create({
-              studentId: student.id,
-              studentName: student.name,
-              batch: student.batch,
-              amount: accumulatedAmount,
-              month: month,
-              year: year,
-              status: 'pending',
-              paidDate: null,
-              paymentMethod: null
-            })
-            generatedCount++
+            try {
+              let accumulatedAmount = student.fees
+              const targetDate = new Date(`${year}-${months.indexOf(month) + 1}-01`)
+              const overdueRecords = latestFeeRecords.filter(
+                record => record.studentId === student.id &&
+                         record.status !== 'paid' &&
+                         new Date(`${record.year}-${months.indexOf(record.month) + 1}-01`) < targetDate
+              )
+              accumulatedAmount += overdueRecords.length * student.fees
+
+              await feeRecordService.create({
+                studentId: student.id,
+                studentName: student.name,
+                batch: student.batch,
+                amount: accumulatedAmount,
+                month: month,
+                year: year,
+                status: 'pending',
+                paidDate: null,
+                paymentMethod: null
+              })
+              generatedCount++
+            } catch (error: any) {
+              if (error?.isDuplicate || error?.message?.includes('duplicate') || error?.message?.includes('already exists')) {
+                skippedCount++
+              } else {
+                throw error
+              }
+            }
           } else {
             skippedCount++
           }
         }
       }
-      
-      await loadFeeRecords() // Reload the list
-      
+
+      await loadFeeRecords()
+
       if (generatedCount > 0) {
         toast({
           title: "Success",
@@ -759,6 +768,8 @@ Generated on: ${new Date().toLocaleDateString()}
         description: `❌ Error regenerating fees: ${error}`,
         variant: "destructive",
       })
+    } finally {
+      setIsRegeneratingFees(false)
     }
   }
 
@@ -855,7 +866,7 @@ Generated on: ${new Date().toLocaleDateString()}
                   )}
                   {isCopying ? "Copying..." : "Copy Summary"}
                 </Button>
-                {selectedMonth !== "All Months" && (
+                {selectedMonth !== "All Months" && selectedYear !== "All Years" && (
                   <Button 
                     variant="outline" 
                     onClick={() => regenerateFeesForMonth(selectedMonth, selectedYear)}

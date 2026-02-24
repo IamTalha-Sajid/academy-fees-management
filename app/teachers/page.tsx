@@ -20,19 +20,30 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Edit, Trash2, Search, Phone, Mail, DollarSign, Calendar, User, History, Sparkles } from "lucide-react"
-import { teacherService, salaryRecordService, type Teacher, type SalaryRecord } from "@/lib/dataService"
+import { teacherService, salaryRecordService, batchService, type Teacher, type SalaryRecord, type Batch } from "@/lib/dataService"
 import PageProtection from "@/components/PageProtection"
 
 export default function TeacherManagement() {
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [salaryRecords, setSalaryRecords] = useState<SalaryRecord[]>([])
+  const [batches, setBatches] = useState<Batch[]>([])
   const [loading, setLoading] = useState(true)
 
   // Load data on component mount
   useEffect(() => {
     loadTeachers()
     loadSalaryRecords()
+    loadBatches()
   }, [])
+
+  const loadBatches = async () => {
+    try {
+      const allBatches = await batchService.getAll()
+      setBatches(allBatches)
+    } catch (error) {
+      console.error("Error loading batches:", error)
+    }
+  }
 
   // Reload data when salary records change to update summary
   useEffect(() => {
@@ -91,7 +102,7 @@ export default function TeacherManagement() {
     teacherId: "",
     amount: "",
     month: "",
-    year: "2025",
+    year: new Date().getFullYear().toString(),
     paymentDate: "",
     paymentMethod: "Cash",
     notes: "",
@@ -124,18 +135,15 @@ export default function TeacherManagement() {
     "November",
     "December",
   ]
-  const years = ["2025", "2024", "2023", "2022"]
-  const batches = [
-    "Class 9-A",
-    "Class 9-B",
-    "Class 9-C",
-    "Class 10-A",
-    "Class 10-B",
-    "Class 11-A",
-    "Class 11-B",
-    "Class 12-A",
-    "Class 12-B",
-  ]
+  const getYears = () => {
+    const current = new Date().getFullYear()
+    const list: string[] = []
+    for (let y = current - 2; y <= current + 1; y++) list.push(String(y))
+    return list
+  }
+  const years = getYears()
+
+  const batchNames = batches.map((b) => b.name).filter(Boolean)
 
   const filteredTeachers = teachers.filter(
     (teacher) =>
@@ -209,7 +217,7 @@ export default function TeacherManagement() {
         teacherId: "",
         amount: "",
         month: "",
-        year: "2025",
+        year: new Date().getFullYear().toString(),
         paymentDate: "",
         paymentMethod: "Cash",
         notes: "",
@@ -471,11 +479,17 @@ export default function TeacherManagement() {
                             <SelectValue placeholder="Select batch" />
                           </SelectTrigger>
                           <SelectContent className="bg-slate-800 border-slate-700">
-                            {batches.map((batch) => (
-                              <SelectItem key={batch} value={batch} className="text-white hover:bg-slate-700">
-                                {batch}
+                            {batchNames.length === 0 ? (
+                              <SelectItem value="_none" disabled className="text-slate-500">
+                                No batches yet. Create batches first.
                               </SelectItem>
-                            ))}
+                            ) : (
+                              batchNames.map((name) => (
+                                <SelectItem key={name} value={name} className="text-white hover:bg-slate-700">
+                                  {name}
+                                </SelectItem>
+                              ))
+                            )}
                           </SelectContent>
                         </Select>
                       </div>

@@ -17,26 +17,29 @@ export default function Dashboard() {
     totalBatches: 0,
     totalRevenue: 0,
     pendingFees: 0,
-    totalExpenses: 0
+    totalExpenses: 0,
+    expectedIncome: 0
   })
   const [recentPayments, setRecentPayments] = useState<any[]>([])
-  const [upcomingDues, setUpcomingDues] = useState<any[]>([])
+  const [overdueBreakdown, setOverdueBreakdown] = useState<{
+    previousOverdueAmount: number
+    currentMonthOverdueAmount: number
+    previousOverdueByBatch: { batch: string; students: number; amount: number }[]
+    currentMonthDuesByBatch: { batch: string; students: number; amount: number }[]
+  } | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
-        // Load statistics
-        const dashboardStats = await dashboardService.getStats()
+        const [dashboardStats, recent, breakdown] = await Promise.all([
+          dashboardService.getStats(),
+          dashboardService.getRecentPayments(5),
+          dashboardService.getOverdueBreakdown()
+        ])
         setStats(dashboardStats)
-
-        // Load recent payments
-        const recent = await dashboardService.getRecentPayments(5)
         setRecentPayments(recent)
-
-        // Load upcoming dues
-        const dues = await dashboardService.getUpcomingDues()
-        setUpcomingDues(dues)
+        setOverdueBreakdown(breakdown)
       } catch (error) {
         console.error('Error loading dashboard data:', error)
       } finally {
@@ -76,9 +79,22 @@ export default function Dashboard() {
     },
     ...(showFeesAndIncome ? [
       {
+        title: "Expected Income",
+        value: `Rs. ${(stats.expectedIncome ?? 0).toLocaleString()}`,
+        description: "Monthly fees from active students",
+        icon: () => <span className="text-lg font-bold text-cyan-600">Rs</span>,
+        trend: "This month",
+        trendIcon: TrendingUp,
+        gradient: "from-cyan-500 to-blue-500",
+        bgGradient: "from-cyan-50 to-blue-50",
+        iconBg: "bg-cyan-100",
+        iconColor: "text-cyan-600",
+        trendColor: "text-cyan-600",
+      },
+      {
         title: "Monthly Revenue",
         value: `Rs. ${stats.totalRevenue.toLocaleString()}`,
-        description: "This month",
+        description: "Collected this month",
         icon: () => <span className="text-lg font-bold text-purple-600">Rs</span>,
         trend: "+8%",
         trendIcon: TrendingUp,
@@ -100,6 +116,32 @@ export default function Dashboard() {
         iconBg: "bg-red-100",
         iconColor: "text-red-600",
         trendColor: "text-red-600",
+      },
+      {
+        title: "Previous Overdue",
+        value: `Rs. ${(overdueBreakdown?.previousOverdueAmount ?? 0).toLocaleString()}`,
+        description: "Unpaid from past months",
+        icon: AlertCircle,
+        trend: "Past due",
+        trendIcon: AlertCircle,
+        gradient: "from-rose-600 to-red-600",
+        bgGradient: "from-rose-50 to-red-50",
+        iconBg: "bg-rose-100",
+        iconColor: "text-rose-600",
+        trendColor: "text-rose-600",
+      },
+      {
+        title: "This Month Dues",
+        value: `Rs. ${(overdueBreakdown?.currentMonthOverdueAmount ?? 0).toLocaleString()}`,
+        description: "Unpaid for current month",
+        icon: AlertCircle,
+        trend: "Due",
+        trendIcon: TrendingDown,
+        gradient: "from-amber-500 to-orange-500",
+        bgGradient: "from-amber-50 to-orange-50",
+        iconBg: "bg-amber-100",
+        iconColor: "text-amber-600",
+        trendColor: "text-amber-600",
       },
       {
         title: "Total Expenses",
@@ -204,7 +246,7 @@ export default function Dashboard() {
           ))}
         </div>
 
-        <div className={`grid gap-6 ${showFeesAndIncome ? 'md:grid-cols-2' : 'md:grid-cols-1'}`}>
+        <div className={`grid gap-6 ${showFeesAndIncome ? 'md:grid-cols-3' : 'md:grid-cols-1'}`}>
           {/* Enhanced Dark Mode Recent Payments */}
           {showFeesAndIncome && (
             <Card className="border border-slate-700 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-slate-800 to-slate-900">
@@ -253,7 +295,50 @@ export default function Dashboard() {
             </Card>
           )}
 
-          {/* Enhanced Dark Mode Upcoming Dues */}
+          {/* Previous Overdue - unpaid from past months */}
+          {showFeesAndIncome && (
+            <Card className="border border-slate-700 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-slate-800 to-slate-900">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-rose-500/20 rounded-lg border border-rose-500/30">
+                  <AlertCircle className="h-5 w-5 text-rose-400" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg font-semibold text-white">Previous Overdue</CardTitle>
+                  <CardDescription className="text-rose-400">Unpaid fees from past months</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {((overdueBreakdown?.previousOverdueByBatch?.length ?? 0) > 0) ? (
+                  (overdueBreakdown?.previousOverdueByBatch ?? []).map((due, index) => (
+                    <div 
+                      key={due.batch} 
+                      className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg border border-slate-600 hover:bg-slate-700 transition-all duration-200"
+                      style={{ animationDelay: `${index * 100}ms` }}
+                    >
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold text-white">{due.batch}</p>
+                        <p className="text-xs text-rose-400 font-medium">{due.students} students</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-white">Rs. {due.amount.toLocaleString()}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <AlertCircle className="h-12 w-12 text-slate-500 mx-auto mb-3" />
+                    <p className="text-sm text-slate-400">No previous overdue</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+            </Card>
+          )}
+
+          {/* This Month Dues - unpaid for current month */}
           {showFeesAndIncome && (
             <Card className="border border-slate-700 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-slate-800 to-slate-900">
             <CardHeader className="pb-4">
@@ -262,34 +347,33 @@ export default function Dashboard() {
                   <AlertCircle className="h-5 w-5 text-amber-400" />
                 </div>
                 <div>
-                  <CardTitle className="text-lg font-semibold text-white">Upcoming Dues</CardTitle>
-                  <CardDescription className="text-amber-400">Fees due this month</CardDescription>
+                  <CardTitle className="text-lg font-semibold text-white">This Month Dues</CardTitle>
+                  <CardDescription className="text-amber-400">Unpaid fees for current month</CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {upcomingDues.length > 0 ? (
-                  upcomingDues.map((due, index) => (
+                {((overdueBreakdown?.currentMonthDuesByBatch?.length ?? 0) > 0) ? (
+                  (overdueBreakdown?.currentMonthDuesByBatch ?? []).map((due, index) => (
                     <div 
-                      key={index} 
-                      className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg border border-slate-600 hover:bg-slate-700 transition-all duration-200 hover:scale-[1.02]"
+                      key={due.batch} 
+                      className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg border border-slate-600 hover:bg-slate-700 transition-all duration-200"
                       style={{ animationDelay: `${index * 100}ms` }}
                     >
                       <div className="space-y-1">
                         <p className="text-sm font-semibold text-white">{due.batch}</p>
                         <p className="text-xs text-amber-400 font-medium">{due.students} students</p>
                       </div>
-                      <div className="text-right space-y-1">
+                      <div className="text-right">
                         <p className="text-sm font-bold text-white">Rs. {due.amount.toLocaleString()}</p>
-                        <p className="text-xs text-amber-400 font-medium">Due: {due.dueDate}</p>
                       </div>
                     </div>
                   ))
                 ) : (
                   <div className="text-center py-8">
                     <AlertCircle className="h-12 w-12 text-slate-500 mx-auto mb-3" />
-                    <p className="text-sm text-slate-400">No upcoming dues</p>
+                    <p className="text-sm text-slate-400">No dues this month</p>
                   </div>
                 )}
               </div>

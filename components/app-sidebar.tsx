@@ -1,6 +1,6 @@
 "use client"
 
-import { GraduationCap, LayoutDashboard, Users, DollarSign, FileText, BookOpen, Receipt, LogOut, User, Shield } from "lucide-react"
+import { GraduationCap, LayoutDashboard, Users, DollarSign, FileText, BookOpen, Receipt, LogOut, User, Shield, Wallet } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/contexts/AuthContext"
 import { useSettings } from "@/contexts/SettingsContext"
@@ -49,6 +49,11 @@ const menuItems = [
     title: "Expense Tracking",
     url: "/expenses",
     icon: Receipt,
+  },
+  {
+    title: "Personal Expense",
+    url: "/personal-expenses",
+    icon: Wallet,
   },
   {
     title: "Reports",

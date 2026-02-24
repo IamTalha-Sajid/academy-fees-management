@@ -7,6 +7,7 @@ import Teacher from '@/lib/models/Teacher'
 import FeeRecord from '@/lib/models/FeeRecord'
 import SalaryRecord from '@/lib/models/SalaryRecord'
 import Expense from '@/lib/models/Expense'
+import PersonalExpense from '@/lib/models/PersonalExpense'
 
 // Helper function to convert MongoDB documents to plain objects with id field
 const transformDocument = (doc: any) => {
@@ -29,13 +30,14 @@ export async function GET() {
     await connectToDatabase()
 
     // Fetch all data from MongoDB
-    const [students, batches, teachers, feeRecords, salaryRecords, expenses] = await Promise.all([
+    const [students, batches, teachers, feeRecords, salaryRecords, expenses, personalExpenses] = await Promise.all([
       Student.find({}).lean(),
       Batch.find({}).lean(),
       Teacher.find({}).lean(),
       FeeRecord.find({}).lean(),
       SalaryRecord.find({}).lean(),
       Expense.find({}).lean(),
+      PersonalExpense.find({}).lean(),
     ])
 
     // Transform the data to include id fields
@@ -46,6 +48,7 @@ export async function GET() {
       feeRecords: transformDocuments(feeRecords),
       salaryRecords: transformDocuments(salaryRecords),
       expenses: transformDocuments(expenses),
+      personalExpenses: transformDocuments(personalExpenses),
     }
 
     return NextResponse.json(dataStore, {
@@ -584,18 +587,52 @@ export async function POST(request: NextRequest) {
         }
         break
 
+      // Personal Expense operations
+      case 'createPersonalExpense':
+        if (data.amount !== undefined && data.amount < 0) {
+          return NextResponse.json({
+            error: 'Amount cannot be negative',
+            invalidData: true
+          }, { status: 400 })
+        }
+        result = await PersonalExpense.create(data)
+        break
+
+      case 'updatePersonalExpense': {
+        const existingPersonalExpense = await PersonalExpense.findById(id)
+        if (!existingPersonalExpense) {
+          return NextResponse.json({ error: 'Personal expense not found' }, { status: 404 })
+        }
+        if (data.amount !== undefined && data.amount < 0) {
+          return NextResponse.json({
+            error: 'Amount cannot be negative',
+            invalidData: true
+          }, { status: 400 })
+        }
+        result = await PersonalExpense.findByIdAndUpdate(id, data, { new: true })
+        break
+      }
+
+      case 'deletePersonalExpense':
+        result = await PersonalExpense.findByIdAndDelete(id)
+        if (!result) {
+          return NextResponse.json({ error: 'Personal expense not found' }, { status: 404 })
+        }
+        break
+
       default:
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
     }
 
     // Fetch updated data to return
-    const [students, batches, teachers, feeRecords, salaryRecords, expenses] = await Promise.all([
+    const [students, batches, teachers, feeRecords, salaryRecords, expenses, personalExpenses] = await Promise.all([
       Student.find({}).lean(),
       Batch.find({}).lean(),
       Teacher.find({}).lean(),
       FeeRecord.find({}).lean(),
       SalaryRecord.find({}).lean(),
       Expense.find({}).lean(),
+      PersonalExpense.find({}).lean(),
     ])
 
     const dataStore = {
@@ -605,6 +642,7 @@ export async function POST(request: NextRequest) {
       feeRecords: transformDocuments(feeRecords),
       salaryRecords: transformDocuments(salaryRecords),
       expenses: transformDocuments(expenses),
+      personalExpenses: transformDocuments(personalExpenses),
     }
 
     return NextResponse.json({ success: true, data: dataStore }, {

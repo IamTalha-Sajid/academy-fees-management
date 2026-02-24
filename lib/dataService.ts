@@ -67,6 +67,15 @@ export interface Expense {
   date: string
 }
 
+export interface PersonalExpense {
+  id: string
+  name: string
+  description: string
+  amount: number
+  date: string
+  place: string
+}
+
 export interface AppData {
   students: Student[]
   batches: Batch[]
@@ -74,12 +83,13 @@ export interface AppData {
   feeRecords: FeeRecord[]
   salaryRecords: SalaryRecord[]
   expenses: Expense[]
+  personalExpenses: PersonalExpense[]
 }
 
 // Helper function to fetch data from API
 async function fetchData(): Promise<AppData> {
   try {
-    const response = await fetch('/api/data')
+    const response = await fetch('/api/data', { cache: 'no-store' })
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
       throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`)
@@ -93,7 +103,8 @@ async function fetchData(): Promise<AppData> {
       teachers: [],
       feeRecords: [],
       salaryRecords: [],
-      expenses: []
+      expenses: [],
+      personalExpenses: []
     }
   }
 }
@@ -343,7 +354,8 @@ export const salaryRecordService = {
 export const dashboardService = {
   getStats: async () => {
     const data = await fetchData()
-    const totalStudents = data.students.filter(s => s.status === 'active').length
+    const activeStudents = data.students.filter(s => s.status === 'active')
+    const totalStudents = activeStudents.length
     const totalBatches = data.batches.filter(b => b.status === 'active').length
     const totalRevenue = data.feeRecords
       .filter(r => r.status === 'paid')
@@ -352,13 +364,15 @@ export const dashboardService = {
       .filter(r => r.status !== 'paid')
       .reduce((sum, record) => sum + record.amount, 0)
     const totalExpenses = data.expenses.reduce((sum, expense) => sum + expense.amount, 0)
+    const expectedIncome = activeStudents.reduce((sum, s) => sum + s.fees, 0)
 
     return {
       totalStudents,
       totalBatches,
       totalRevenue,
       pendingFees,
-      totalExpenses
+      totalExpenses,
+      expectedIncome
     }
   },
 
@@ -390,6 +404,54 @@ export const dashboardService = {
       amount: data.amount,
       dueDate: new Date().toISOString().split('T')[0] // Today's date for demo
     }))
+  },
+
+  /** Split overdue into previous months (past unpaid) vs current month unpaid, with optional batch breakdown */
+  getOverdueBreakdown: async (): Promise<{
+    previousOverdueAmount: number
+    currentMonthOverdueAmount: number
+    previousOverdueByBatch: { batch: string; students: number; amount: number }[]
+    currentMonthDuesByBatch: { batch: string; students: number; amount: number }[]
+  }> => {
+    const data = await fetchData()
+    const now = new Date()
+    const currentYear = now.getFullYear().toString()
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+    const currentMonthName = monthNames[now.getMonth()]
+
+    const previousByBatch: Record<string, { students: number; amount: number }> = {}
+    const currentMonthByBatch: Record<string, { students: number; amount: number }> = {}
+
+    for (const record of data.feeRecords) {
+      if (record.status === 'paid') continue
+      const recordMonthIndex = monthNames.indexOf(record.month)
+      const recordYear = record.year
+      const isCurrentMonth = recordYear === currentYear && record.month === currentMonthName
+      const isPastMonth = recordYear < currentYear || (recordYear === currentYear && recordMonthIndex < now.getMonth())
+
+      if (isPastMonth) {
+        if (!previousByBatch[record.batch]) previousByBatch[record.batch] = { students: 0, amount: 0 }
+        previousByBatch[record.batch].students++
+        previousByBatch[record.batch].amount += record.amount
+      } else if (isCurrentMonth) {
+        if (!currentMonthByBatch[record.batch]) currentMonthByBatch[record.batch] = { students: 0, amount: 0 }
+        currentMonthByBatch[record.batch].students++
+        currentMonthByBatch[record.batch].amount += record.amount
+      }
+    }
+
+    const previousOverdueAmount = Object.values(previousByBatch).reduce((s, b) => s + b.amount, 0)
+    const currentMonthOverdueAmount = Object.values(currentMonthByBatch).reduce((s, b) => s + b.amount, 0)
+
+    const previousOverdueByBatch = Object.entries(previousByBatch).map(([batch, d]) => ({ batch, students: d.students, amount: d.amount }))
+    const currentMonthDuesByBatch = Object.entries(currentMonthByBatch).map(([batch, d]) => ({ batch, students: d.students, amount: d.amount }))
+
+    return {
+      previousOverdueAmount,
+      currentMonthOverdueAmount,
+      previousOverdueByBatch,
+      currentMonthDuesByBatch
+    }
   }
 }
 
@@ -424,5 +486,39 @@ export const expenseService = {
 
   delete: async (id: string): Promise<boolean> => {
     return await updateData('deleteExpense', undefined, id)
+  }
+}
+
+// Personal Expense operations
+export const personalExpenseService = {
+  getAll: async (): Promise<PersonalExpense[]> => {
+    const data = await fetchData()
+    return data.personalExpenses ?? []
+  },
+
+  getById: async (id: string): Promise<PersonalExpense | undefined> => {
+    const data = await fetchData()
+    return data.personalExpenses?.find((pe) => pe.id === id)
+  },
+
+  create: async (expense: Omit<PersonalExpense, 'id'>): Promise<PersonalExpense> => {
+    const success = await updateData('createPersonalExpense', expense)
+    if (!success) {
+      throw new Error('Failed to create personal expense')
+    }
+    return { ...expense, id: Date.now().toString() }
+  },
+
+  update: async (id: string, updates: Partial<PersonalExpense>): Promise<PersonalExpense | null> => {
+    const success = await updateData('updatePersonalExpense', updates, id)
+    if (!success) {
+      return null
+    }
+    const data = await fetchData()
+    return data.personalExpenses?.find((pe) => pe.id === id) ?? null
+  },
+
+  delete: async (id: string): Promise<boolean> => {
+    return await updateData('deletePersonalExpense', undefined, id)
   }
 } 
