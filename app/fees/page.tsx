@@ -628,20 +628,11 @@ Generated on: ${new Date().toLocaleDateString()}
 
           if (!existingRecord) {
             try {
-              let accumulatedAmount = student.fees
-              const targetDate = new Date(`${year}-${months.indexOf(month) + 1}-01`)
-              const overdueRecords = latestFeeRecords.filter(
-                record => record.studentId === student.id &&
-                         record.status !== 'paid' &&
-                         new Date(`${record.year}-${months.indexOf(record.month) + 1}-01`) < targetDate
-              )
-              accumulatedAmount += overdueRecords.length * student.fees
-
               await feeRecordService.create({
                 studentId: student.id,
                 studentName: student.name,
                 batch: student.batch,
-                amount: accumulatedAmount,
+                amount: student.fees,
                 month: month,
                 year: year,
                 status: 'pending',
@@ -714,20 +705,11 @@ Generated on: ${new Date().toLocaleDateString()}
 
           if (!existingRecord) {
             try {
-              let accumulatedAmount = student.fees
-              const targetDate = new Date(`${year}-${months.indexOf(month) + 1}-01`)
-              const overdueRecords = latestFeeRecords.filter(
-                record => record.studentId === student.id &&
-                         record.status !== 'paid' &&
-                         new Date(`${record.year}-${months.indexOf(record.month) + 1}-01`) < targetDate
-              )
-              accumulatedAmount += overdueRecords.length * student.fees
-
               await feeRecordService.create({
                 studentId: student.id,
                 studentName: student.name,
                 batch: student.batch,
-                amount: accumulatedAmount,
+                amount: student.fees,
                 month: month,
                 year: year,
                 status: 'pending',
@@ -1186,7 +1168,7 @@ Generated on: ${new Date().toLocaleDateString()}
                               <div className="font-medium text-white">Rs. {record.amount.toLocaleString()}</div>
                               {overdue && (
                                 <div className="text-xs text-red-400">
-                                  Includes overdue amounts
+                                  Past due
                                 </div>
                               )}
                             </div>
